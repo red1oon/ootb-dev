@@ -611,15 +611,15 @@ function setupScene(A) {
     el.style.opacity = text ? '1' : '0';
   }
 
-  // §5 — S265 Phase 5 P10: Command Palette — grouped subsections, collapsible, ICONS registry
-  // Icon helper — uses ICONS registry from panels.js if available, fallback inline
+  // §5 — Command Palette (? key or 🛟 button)
+  // S265: icon helper uses ICONS registry from panels.js
   var _ic = function(name) {
     var ic = (typeof ICONS !== 'undefined') ? ICONS[name] : null;
     var svg = ic ? ic.svg : '';
     return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + svg + '</svg>';
   };
 
-  // Palette entries grouped by section — each group collapsed by default
+  // Grouped entries — items shown, section headers collapsible
   var _paletteGroups = [
     { label: 'Primary', items: [
       { seq: 'T',  name: 'Time Machine',    icon: 'clock',    action: function() { if (typeof toggleTimeMachine==='function') toggleTimeMachine(); } },
@@ -652,7 +652,7 @@ function setupScene(A) {
     ]},
   ];
 
-  // Flat list for backward compat with keyboard routing
+  // Flat list for keyboard routing
   var _paletteEntries = [];
   _paletteGroups.forEach(function(g) { g.items.forEach(function(e) { _paletteEntries.push(e); }); });
 
@@ -665,56 +665,41 @@ function setupScene(A) {
     pal.id = 'cmd-palette';
     pal.className = 'bim-panel';
     pal.style.cssText = 'position:fixed;top:15%;left:50%;transform:translateX(-50%);' +
-      'z-index:10001;width:340px;max-height:75vh;overflow:hidden;padding:0;display:block';
+      'z-index:10001;width:340px;max-height:75vh;padding:0;display:block;overflow:hidden';
 
-    // Header with search + expand-all
-    var header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)';
+    // Search bar at top
+    var searchWrap = document.createElement('div');
+    searchWrap.style.cssText = 'padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)';
     var searchInput = document.createElement('input');
     searchInput.id = 'cmd-search';
     searchInput.type = 'text';
     searchInput.placeholder = 'Type a command...';
-    searchInput.style.cssText = 'flex:1;background:rgba(0,0,0,0.3);color:#eee;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;font-size:12px;outline:none;box-sizing:border-box';
-    header.appendChild(searchInput);
-    var expandBtn = document.createElement('button');
-    expandBtn.textContent = '+';
-    expandBtn.title = 'Expand all sections';
-    expandBtn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.15);color:#4fc3f7;border-radius:4px;cursor:pointer;padding:4px 8px;font-size:14px;font-weight:bold;flex-shrink:0';
-    header.appendChild(expandBtn);
-    // Close
+    searchInput.style.cssText = 'width:100%;background:rgba(0,0,0,0.3);color:#eee;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;font-size:12px;outline:none;box-sizing:border-box';
+    searchWrap.appendChild(searchInput);
+    pal.appendChild(searchWrap);
+
+    // Close button
     var closeBtn = document.createElement('span');
     closeBtn.className = 'bim-panel-close';
     closeBtn.innerHTML = '&times;';
-    closeBtn.style.cssText += ';position:static;flex-shrink:0';
     closeBtn.addEventListener('pointerup', function() { pal.remove(); });
-    header.appendChild(closeBtn);
-    pal.appendChild(header);
+    pal.appendChild(closeBtn);
 
-    // Scrollable content
+    // Scrollable list
     var listEl = document.createElement('div');
     listEl.id = 'cmd-list';
     listEl.style.cssText = 'max-height:50vh;overflow-y:auto;padding:2px 0';
     pal.appendChild(listEl);
 
-    // Footer
-    var footer = document.createElement('div');
-    footer.style.cssText = 'padding:8px 14px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;font-size:11px';
-    footer.innerHTML = '<span id="cmd-report" style="color:#ff8a65;cursor:pointer;font-weight:600">Report Bug</span>' +
-      '<span style="color:#555;margin:0 8px">|</span>' +
-      '<a id="cmd-docs" href="https://red1oon.github.io/BIMCompiler/MOBILE_DEPLOY/" target="_blank" style="color:#4fc3f7;text-decoration:none;font-weight:600">Documentation</a>';
-    pal.appendChild(footer);
-    document.body.appendChild(pal);
-
-    // §G5: Don't auto-focus search on mobile (triggers soft keyboard)
-    if (!window._isMobile) searchInput.focus();
-
-    var _allCollapsed = true;
+    var cursor = 0;
     var _sectionBodies = [];
 
     function renderList(filter) {
       var f = (filter || '').toLowerCase();
       listEl.innerHTML = '';
       _sectionBodies = [];
+      cursor = 0;
+      var allRows = [];
 
       _paletteGroups.forEach(function(group) {
         var matchingItems = group.items.filter(function(e) {
@@ -722,20 +707,19 @@ function setupScene(A) {
         });
         if (!matchingItems.length) return;
 
-        // Section header (clickable to expand/collapse)
+        // Section header — clickable to collapse/expand
         var secHeader = document.createElement('div');
-        secHeader.style.cssText = 'padding:4px 14px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;margin-top:2px';
+        secHeader.style.cssText = 'padding:4px 14px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;margin-top:4px';
         var arrow = document.createElement('span');
-        arrow.textContent = f ? '▾' : '▸';
-        arrow.style.cssText = 'font-size:8px;width:10px;transition:transform 0.2s';
+        arrow.textContent = '▾';
+        arrow.style.fontSize = '8px';
         secHeader.appendChild(arrow);
         secHeader.appendChild(document.createTextNode(group.label));
         listEl.appendChild(secHeader);
 
-        // Section body
         var secBody = document.createElement('div');
-        // When searching, expand all; otherwise collapsed
-        secBody.style.display = f ? 'block' : 'none';
+        secBody.style.display = 'none'; // collapsed by default
+        arrow.textContent = '▸';
         _sectionBodies.push({ body: secBody, arrow: arrow });
 
         secHeader.addEventListener('click', function() {
@@ -744,42 +728,76 @@ function setupScene(A) {
           arrow.textContent = open ? '▸' : '▾';
         });
 
-        matchingItems.forEach(function(entry) {
+        matchingItems.forEach(function(entry, i) {
           var row = document.createElement('div');
+          row.className = 'cmd-row';
           row.style.cssText = 'padding:6px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#e0e0e0';
           row.innerHTML = '<span style="display:flex;align-items:center;gap:8px">' +
             _ic(entry.icon) + entry.name + '</span>' +
             (entry.seq ? '<kbd style="background:rgba(0,0,0,0.3);color:#4fc3f7;padding:1px 6px;border-radius:3px;font-family:monospace;font-size:10px;border:1px solid rgba(255,255,255,0.1)">' + entry.seq + '</kbd>' : '');
-          row.addEventListener('mouseenter', function() { row.style.background = 'rgba(79,195,247,0.12)'; });
-          row.addEventListener('mouseleave', function() { row.style.background = ''; });
           row.addEventListener('click', function() {
             pal.remove();
             if (entry.action) { entry.action(); }
             else { var seq = entry.seq.toLowerCase(); if (_shortcuts[seq]) _shortcuts[seq](); }
             console.log('§KBD_PALETTE_RUN name=' + entry.name + ' seq=' + entry.seq);
           });
+          row.addEventListener('mouseenter', function() {
+            cursor = allRows.indexOf(row);
+            highlightRows(allRows);
+          });
           secBody.appendChild(row);
+          allRows.push(row);
         });
         listEl.appendChild(secBody);
       });
+      highlightRows(allRows);
+      return allRows;
     }
 
-    renderList('');
+    function highlightRows(rows) {
+      for (var i = 0; i < rows.length; i++) {
+        rows[i].style.background = (i === cursor) ? 'rgba(79,195,247,0.15)' : '';
+      }
+    }
 
-    // Expand all button
+    var currentRows = renderList('');
+    // §G5: Don't auto-focus on mobile
+    if (!window._isMobile) searchInput.focus();
+
+    searchInput.addEventListener('input', function() { currentRows = renderList(this.value); });
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { pal.remove(); console.log('§KBD_HELP close'); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); cursor = Math.min(cursor + 1, currentRows.length - 1); highlightRows(currentRows); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); cursor = Math.max(cursor - 1, 0); highlightRows(currentRows); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentRows[cursor]) currentRows[cursor].click();
+      }
+    });
+
+    // Footer: (+) expand all + links
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding:6px 14px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;font-size:11px';
+    var expandBtn = document.createElement('button');
+    expandBtn.textContent = '(+) Expand all';
+    expandBtn.style.cssText = 'background:none;border:none;color:#4fc3f7;cursor:pointer;font-size:11px;padding:2px 0';
+    var _expanded = false; // starts collapsed
     expandBtn.addEventListener('click', function() {
-      _allCollapsed = !_allCollapsed;
-      expandBtn.textContent = _allCollapsed ? '+' : '−';
+      _expanded = !_expanded;
+      expandBtn.textContent = _expanded ? '(−) Collapse all' : '(+) Expand all';
       _sectionBodies.forEach(function(s) {
-        s.body.style.display = _allCollapsed ? 'none' : 'block';
-        s.arrow.textContent = _allCollapsed ? '▸' : '▾';
+        s.body.style.display = _expanded ? 'block' : 'none';
+        s.arrow.textContent = _expanded ? '▾' : '▸';
       });
     });
-
-    searchInput.addEventListener('input', function() { renderList(this.value); });
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { pal.remove(); console.log('§KBD_HELP close'); }
-    });
+    footer.appendChild(expandBtn);
+    var links = document.createElement('span');
+    links.innerHTML = '<span id="cmd-report" style="color:#ff8a65;cursor:pointer;font-weight:600">Report Bug</span>' +
+      '<span style="color:#555;margin:0 6px">|</span>' +
+      '<a id="cmd-docs" href="https://red1oon.github.io/BIMCompiler/MOBILE_DEPLOY/" target="_blank" style="color:#4fc3f7;text-decoration:none;font-weight:600">Docs</a>';
+    footer.appendChild(links);
+    pal.appendChild(footer);
+    document.body.appendChild(pal);
 
     // Report Bug
     document.getElementById('cmd-report').addEventListener('click', function() {
