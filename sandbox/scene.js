@@ -766,11 +766,13 @@ function setupScene(A) {
     }
   }
   function _focusPanel(id) {
-    // Push current to stack before switching
+    // Push current to stack before switching — §G2 fix: deduplicate
     var prevId = _focusedPanel ? _focusedPanel.id : 'none';
     if (_focusedPanel) {
+      var _di = _focusStack.indexOf(_focusedPanel.id);
+      if (_di >= 0) _focusStack.splice(_di, 1);
       _focusStack.push(_focusedPanel.id);
-      if (_focusStack.length > 10) _focusStack.shift();
+      if (_focusStack.length > 8) _focusStack.shift();
       _focusedPanel.el.style.boxShadow = '';
     }
     _focusedPanel = null;
