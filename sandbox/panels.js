@@ -29,9 +29,9 @@ var ICONS = {
   home:      { svg: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', trl: 'ui_tt_home', key: null, desc: 'Home' },
   // P1 sunglass slider icons
   sun:       { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', trl: 'ui_sun', key: null, desc: 'Sun intensity' },
-  aperture:  { svg: '<circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94"/><path d="M9.69 8h11.48"/><path d="m7.38 12 5.74-9.94"/><path d="M9.69 16 3.95 6.06"/><path d="M14.31 16H2.83"/><path d="m16.62 12-5.74 9.94"/>', trl: 'ui_exposure', key: null, desc: 'Exposure' },
-  circle:    { svg: '<circle cx="12" cy="12" r="10"/>', trl: 'ui_ambient', key: null, desc: 'Ambient' },
-  sunset:    { svg: '<path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>', trl: 'ui_hemisphere', key: null, desc: 'Hemisphere' }
+  sunDim:    { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.66 6.34h.01"/><path d="M17.66 17.66h.01"/><path d="M6.34 17.66h.01"/><path d="M6.34 6.34h.01"/>', trl: 'ui_exposure', key: null, desc: 'Exposure' },
+  lightbulb: { svg: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>', trl: 'ui_ambient', key: null, desc: 'Ambient' },
+  sunrise:   { svg: '<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="M16 18a4 4 0 0 0-8 0"/>', trl: 'ui_hemisphere', key: null, desc: 'Hemisphere' }
 };
 
 function setupPanels(A) {
@@ -92,7 +92,7 @@ function setupPanels(A) {
     return el;
   };
 
-  // ── S265 Phase 5 P1: Build sunglass slider panel ──
+  // ── S265 Phase 5 P1: Build Color Palette slider panel ──
   A._buildSunglassPanel = function() {
     var existing = document.getElementById('sunglass-slider-panel');
     if (!existing) return;
@@ -156,15 +156,15 @@ function setupPanels(A) {
       if (typeof updateLighting === 'function') updateLighting('sun', v);
     }));
     // Row 3: Aperture / Exposure (0.1-3.0)
-    existing.appendChild(sliderRow('aperture', 'sl-exposure', 'sl-exposure-val', 0.1, 3.0, 0.45, 0.05, function(v) {
+    existing.appendChild(sliderRow('sunDim', 'sl-exposure', 'sl-exposure-val', 0.1, 3.0, 0.45, 0.05, function(v) {
       if (typeof updateLighting === 'function') updateLighting('exposure', v);
     }));
     // Row 4: Ambient (0-2.0)
-    existing.appendChild(sliderRow('circle', 'sl-ambient', 'sl-ambient-val', 0, 2.0, 0.25, 0.01, function(v) {
+    existing.appendChild(sliderRow('lightbulb', 'sl-ambient', 'sl-ambient-val', 0, 2.0, 0.25, 0.01, function(v) {
       if (typeof updateLighting === 'function') updateLighting('ambient', v);
     }));
     // Row 5: Hemisphere (0-2.0)
-    existing.appendChild(sliderRow('sunset', 'sl-hemi', 'sl-hemi-val', 0, 2.0, 0.40, 0.01, function(v) {
+    existing.appendChild(sliderRow('sunrise', 'sl-hemi', 'sl-hemi-val', 0, 2.0, 0.40, 0.01, function(v) {
       if (typeof updateLighting === 'function') updateLighting('hemi', v);
     }));
 
@@ -172,7 +172,7 @@ function setupPanels(A) {
     if (A._makeDraggable) A._makeDraggable(existing);
     existing.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
 
-    console.log('§SUNGLASS_PANEL built with bim-panel + icon slider rows');
+    console.log('§COLOR_PALETTE built with bim-panel + icon slider rows');
   };
 
   // Build the sunglass panel immediately
