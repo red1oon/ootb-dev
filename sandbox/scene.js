@@ -612,49 +612,29 @@ function setupScene(A) {
   }
 
   // §5 — Command Palette (? key or 🛟 button)
-  // S265: icon helper uses ICONS registry from panels.js
-  var _ic = function(name) {
-    var ic = (typeof ICONS !== 'undefined') ? ICONS[name] : null;
-    var svg = ic ? ic.svg : '';
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + svg + '</svg>';
-  };
-
-  // Grouped entries — items shown, section headers collapsible
-  var _paletteGroups = [
-    { label: 'Primary', items: [
-      { seq: 'T',  name: 'Time Machine',    icon: 'clock',    action: function() { if (typeof toggleTimeMachine==='function') toggleTimeMachine(); } },
-      { seq: 'M',  name: 'Measure',         icon: 'ruler' },
-      { seq: 'F',  name: 'Find / Navigate', icon: 'search' },
-      { seq: '',   name: 'Share',            icon: 'share',    action: function() { if (A.quickShare) A.quickShare(); } },
-    ]},
-    { label: 'Display', items: [
-      { seq: 'X',     name: 'Section Cut',  icon: 'scissors' },
-      { seq: 'Alt+Z', name: 'X-Ray',        icon: 'eye' },
-      { seq: 'P',     name: 'Color Studio', icon: 'palette' },
-      { seq: 'N',     name: 'Night',         icon: 'moon' },
-      { seq: 'H',     name: 'Shadow',        icon: 'cloud' },
-      { seq: 'B',     name: 'Background',    icon: 'contrast' },
-    ]},
-    { label: 'Navigation', items: [
-      { seq: 'L',  name: 'Fly Tour',        icon: 'plane' },
-      { seq: '',   name: 'Walk Mode',        icon: 'home',     action: function() { if (typeof toggleWalkMode==='function') toggleWalkMode(); } },
-    ]},
-    { label: 'Analysis', items: [
-      { seq: 'C',  name: 'Clash Matrix',    icon: 'triangle',  action: function() { if (A._loadClashRules) A._loadClashRules(function(r){A._currentClashRules=r;A._showClashMatrix(r,document.body)}); } },
-      { seq: '2',  name: '2D Plans',        icon: 'layout' },
-      { seq: 'I',  name: 'Issues',          icon: 'clipboard' },
-      { seq: '4',  name: '4D / 5D Export',  icon: 'barChart' },
-    ]},
-    { label: 'Tools', items: [
-      { seq: 'S',   name: 'Screenshot',     icon: 'camera' },
-      { seq: 'F11', name: 'Fullscreen',     icon: 'maximize' },
-      { seq: '',    name: 'Home',            icon: 'home',     action: function() { location.href='../index.html'; } },
-    ]},
+  // S265: inline SVG icons for command palette (16x16, stroke=currentColor)
+  var _ic = function(d) { return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
+  var _paletteEntries = [
+    { seq: 'M',  name: 'Measure',        icon: _ic('<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>') },
+    { seq: 'F',  name: 'Find / Navigate', icon: _ic('<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>') },
+    { seq: 'X',  name: 'Section Cut',     icon: _ic('<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>') },
+    { seq: 'C',  name: 'Clash Matrix',    icon: _ic('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>') },
+    { seq: 'P',  name: 'Palette',         icon: _ic('<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>') },
+    { seq: '2',  name: '2D Grid',         icon: _ic('<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/>') },
+    { seq: 'L',  name: 'Fly Tour',        icon: _ic('<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>') },
+    { seq: 'S',  name: 'Screenshot',      icon: _ic('<path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/>') },
+    { seq: '4',  name: '4D / 5D',         icon: _ic('<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>') },
+    { seq: 'Alt+Z', name: 'X-Ray',       icon: _ic('<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0"/>') },
+    { seq: 'I',  name: 'Issues',          icon: _ic('<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>') },
+    { seq: 'N',  name: 'Night',           icon: _ic('<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>') },
+    { seq: 'H',  name: 'Shadow',          icon: _ic('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>') },
+    { seq: 'B',  name: 'Background',      icon: _ic('<circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/>') },
+    { seq: 'F11', name: 'Fullscreen',     icon: _ic('<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>') },
+    { seq: 'T',  name: 'Time Machine',    icon: _ic('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>') },
+    { seq: '',   name: 'Share',           icon: _ic('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>'), action: function() { if (A.quickShare) A.quickShare(); } },
+    { seq: '',   name: 'Home',            icon: _ic('<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'), action: function() { location.href='../index.html'; } },
+    { seq: 'F1', name: 'Help',            icon: _ic('<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>') }
   ];
-
-  // Flat list for keyboard routing
-  var _paletteEntries = [];
-  _paletteGroups.forEach(function(g) { g.items.forEach(function(e) { _paletteEntries.push(e); }); });
 
   function showCommandPalette() {
     var existing = document.getElementById('cmd-palette');
@@ -663,150 +643,102 @@ function setupScene(A) {
 
     var pal = document.createElement('div');
     pal.id = 'cmd-palette';
-    pal.className = 'bim-panel';
-    pal.style.cssText = 'position:fixed;top:15%;left:50%;transform:translateX(-50%);' +
-      'z-index:10001;width:340px;max-height:75vh;padding:0;display:block;overflow:hidden';
+    pal.style.cssText = 'position:fixed;top:18%;left:50%;transform:translateX(-50%);' +
+      'z-index:10001;background:rgba(10,10,30,0.97);border:1px solid rgba(79,195,247,0.3);' +
+      'border-radius:12px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.6);' +
+      'font-family:\'Segoe UI\',sans-serif;overflow:hidden';
 
-    // Search bar at top
-    var searchWrap = document.createElement('div');
-    searchWrap.style.cssText = 'padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)';
-    var searchInput = document.createElement('input');
-    searchInput.id = 'cmd-search';
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Type a command...';
-    searchInput.style.cssText = 'width:100%;background:rgba(0,0,0,0.3);color:#eee;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:7px 10px;font-size:12px;outline:none;box-sizing:border-box';
-    searchWrap.appendChild(searchInput);
-    pal.appendChild(searchWrap);
+    var html = '<div style="padding:6px 14px;color:#888;font-size:10px;border-bottom:1px solid #222;text-align:center">' +
+      '<div style="padding:10px 14px;border-bottom:1px solid #333">' +
+      '<input id="cmd-search" type="text" placeholder="Type a command..." ' +
+      'style="width:100%;background:#222;color:#eee;border:1px solid #555;border-radius:6px;' +
+      'padding:8px 10px;font-size:13px;outline:none;box-sizing:border-box">' +
+      '</div>' +
+      '<div id="cmd-list" style="max-height:260px;overflow-y:auto;padding:4px 0"></div>' +
+      '<div style="padding:8px 14px;border-top:1px solid #333;text-align:center">' +
+      '<span id="cmd-report" style="color:#ff8a65;font-size:12px;cursor:pointer;font-weight:600">' +
+      '\uD83D\uDEDF Report Bug</span>' +
+      '<span style="color:#555;margin:0 8px">|</span>' +
+      '<a id="cmd-docs" href="https://red1oon.github.io/BIMCompiler/MOBILE_DEPLOY/" target="_blank" ' +
+      'style="color:#4fc3f7;font-size:12px;text-decoration:none;font-weight:600">' +
+      '\uD83D\uDCDA Documentation</a></div>';
+    pal.innerHTML = html;
+    document.body.appendChild(pal);
 
-    // Close button
-    var closeBtn = document.createElement('span');
-    closeBtn.className = 'bim-panel-close';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.addEventListener('pointerup', function() { pal.remove(); });
-    pal.appendChild(closeBtn);
-
-    // Scrollable list
-    var listEl = document.createElement('div');
-    listEl.id = 'cmd-list';
-    listEl.style.cssText = 'max-height:50vh;overflow-y:auto;padding:2px 0';
-    pal.appendChild(listEl);
-
+    var searchInput = document.getElementById('cmd-search');
+    var listEl = document.getElementById('cmd-list');
     var cursor = 0;
-    var _sectionBodies = [];
 
     function renderList(filter) {
       var f = (filter || '').toLowerCase();
-      listEl.innerHTML = '';
-      _sectionBodies = [];
-      cursor = 0;
-      var allRows = [];
-
-      _paletteGroups.forEach(function(group) {
-        var matchingItems = group.items.filter(function(e) {
-          return e.name.toLowerCase().indexOf(f) >= 0 || e.seq.toLowerCase().indexOf(f) >= 0;
-        });
-        if (!matchingItems.length) return;
-
-        // Section header — clickable to collapse/expand
-        var secHeader = document.createElement('div');
-        secHeader.style.cssText = 'padding:4px 14px;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666;cursor:pointer;user-select:none;display:flex;align-items:center;gap:4px;margin-top:4px';
-        var arrow = document.createElement('span');
-        arrow.textContent = '▾';
-        arrow.style.fontSize = '8px';
-        secHeader.appendChild(arrow);
-        secHeader.appendChild(document.createTextNode(group.label));
-        listEl.appendChild(secHeader);
-
-        var secBody = document.createElement('div');
-        secBody.style.display = 'none'; // collapsed by default
-        arrow.textContent = '▸';
-        _sectionBodies.push({ body: secBody, arrow: arrow });
-
-        secHeader.addEventListener('click', function() {
-          var open = secBody.style.display !== 'none';
-          secBody.style.display = open ? 'none' : 'block';
-          arrow.textContent = open ? '▸' : '▾';
-        });
-
-        matchingItems.forEach(function(entry, i) {
-          var row = document.createElement('div');
-          row.className = 'cmd-row';
-          row.style.cssText = 'padding:6px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#e0e0e0';
-          row.innerHTML = '<span style="display:flex;align-items:center;gap:8px">' +
-            _ic(entry.icon) + entry.name + '</span>' +
-            (entry.seq ? '<kbd style="background:rgba(0,0,0,0.3);color:#4fc3f7;padding:1px 6px;border-radius:3px;font-family:monospace;font-size:10px;border:1px solid rgba(255,255,255,0.1)">' + entry.seq + '</kbd>' : '');
-          row.addEventListener('click', function() {
-            pal.remove();
-            if (entry.action) { entry.action(); }
-            else { var seq = entry.seq.toLowerCase(); if (_shortcuts[seq]) _shortcuts[seq](); }
-            console.log('§KBD_PALETTE_RUN name=' + entry.name + ' seq=' + entry.seq);
-          });
-          row.addEventListener('mouseenter', function() {
-            cursor = allRows.indexOf(row);
-            highlightRows(allRows);
-          });
-          secBody.appendChild(row);
-          allRows.push(row);
-        });
-        listEl.appendChild(secBody);
+      var matches = _paletteEntries.filter(function(e) {
+        return e.name.toLowerCase().indexOf(f) >= 0 || e.seq.toLowerCase().indexOf(f) >= 0;
       });
-      highlightRows(allRows);
-      return allRows;
+      listEl.innerHTML = '';
+      matches.forEach(function(entry, i) {
+        var row = document.createElement('div');
+        row.className = 'cmd-row';
+        row.setAttribute('data-idx', String(i));
+        row.style.cssText = 'padding:8px 14px;cursor:pointer;display:flex;align-items:center;' +
+          'justify-content:space-between;font-size:13px;color:#e0e0e0;' +
+          (i === cursor ? 'background:rgba(79,195,247,0.15)' : '');
+        row.innerHTML = '<span style="display:flex;align-items:center;gap:8px">' +
+          (entry.icon || '') + entry.name + '</span>' +
+          (entry.seq ? '<kbd style="background:#333;color:#4fc3f7;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px;border:1px solid #555">' + entry.seq + '</kbd>' : '');
+        row.addEventListener('click', function() {
+          pal.remove();
+          if (entry.action) { entry.action(); }
+          else { var seq = entry.seq.toLowerCase(); if (_shortcuts[seq]) _shortcuts[seq](); }
+          console.log('§KBD_PALETTE_RUN name=' + entry.name + ' seq=' + entry.seq);
+        });
+        row.addEventListener('mouseenter', function() {
+          cursor = i;
+          highlightRows();
+        });
+        listEl.appendChild(row);
+      });
+      return matches;
     }
 
-    function highlightRows(rows) {
+    function highlightRows() {
+      var rows = listEl.querySelectorAll('.cmd-row');
       for (var i = 0; i < rows.length; i++) {
         rows[i].style.background = (i === cursor) ? 'rgba(79,195,247,0.15)' : '';
       }
     }
 
-    var currentRows = renderList('');
-    // §G5: Don't auto-focus on mobile
-    if (!window._isMobile) searchInput.focus();
+    var currentMatches = renderList('');
+    searchInput.focus();
 
-    searchInput.addEventListener('input', function() { currentRows = renderList(this.value); });
+    searchInput.addEventListener('input', function() {
+      cursor = 0;
+      currentMatches = renderList(this.value);
+    });
+
     searchInput.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') { pal.remove(); console.log('§KBD_HELP close'); return; }
-      if (e.key === 'ArrowDown') { e.preventDefault(); cursor = Math.min(cursor + 1, currentRows.length - 1); highlightRows(currentRows); }
-      if (e.key === 'ArrowUp')   { e.preventDefault(); cursor = Math.max(cursor - 1, 0); highlightRows(currentRows); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); cursor = Math.min(cursor + 1, currentMatches.length - 1); highlightRows(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); cursor = Math.max(cursor - 1, 0); highlightRows(); }
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (currentRows[cursor]) currentRows[cursor].click();
+        var entry = currentMatches[cursor];
+        if (entry) {
+          pal.remove();
+          if (entry.action) { entry.action(); }
+          else { var seq = entry.seq.toLowerCase(); if (_shortcuts[seq]) _shortcuts[seq](); }
+          console.log('§KBD_PALETTE_RUN name=' + entry.name + ' seq=' + entry.seq);
+        }
       }
     });
 
-    // Footer: (+) expand all + links
-    var footer = document.createElement('div');
-    footer.style.cssText = 'padding:6px 14px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;font-size:11px';
-    var expandBtn = document.createElement('button');
-    expandBtn.textContent = '(+) Expand all';
-    expandBtn.style.cssText = 'background:none;border:none;color:#4fc3f7;cursor:pointer;font-size:11px;padding:2px 0';
-    var _expanded = false; // starts collapsed
-    expandBtn.addEventListener('click', function() {
-      _expanded = !_expanded;
-      expandBtn.textContent = _expanded ? '(−) Collapse all' : '(+) Expand all';
-      _sectionBodies.forEach(function(s) {
-        s.body.style.display = _expanded ? 'block' : 'none';
-        s.arrow.textContent = _expanded ? '▾' : '▸';
-      });
-    });
-    footer.appendChild(expandBtn);
-    var links = document.createElement('span');
-    links.innerHTML = '<span id="cmd-report" style="color:#ff8a65;cursor:pointer;font-weight:600">Report Bug</span>' +
-      '<span style="color:#555;margin:0 6px">|</span>' +
-      '<a id="cmd-docs" href="https://red1oon.github.io/BIMCompiler/MOBILE_DEPLOY/" target="_blank" style="color:#4fc3f7;text-decoration:none;font-weight:600">Docs</a>';
-    footer.appendChild(links);
-    pal.appendChild(footer);
-    document.body.appendChild(pal);
-
-    // Report Bug
+    // Report Bug link — calls existing APP.reportBug() (helpers.js)
     document.getElementById('cmd-report').addEventListener('click', function() {
       pal.remove();
       if (A.reportBug) A.reportBug();
     });
 
-    // Click outside closes
-    pal.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
+    // Click outside closes palette
+    pal.addEventListener('click', function(e) { e.stopPropagation(); });
     setTimeout(function() {
       document.addEventListener('click', function _closePal() {
         var p = document.getElementById('cmd-palette');
@@ -834,14 +766,11 @@ function setupScene(A) {
     }
   }
   function _focusPanel(id) {
-    // Push current to stack before switching — G2 fix: deduplicate
+    // Push current to stack before switching
     var prevId = _focusedPanel ? _focusedPanel.id : 'none';
     if (_focusedPanel) {
-      // §G2: Remove existing entry before pushing (prevents unbounded duplicates)
-      var _di = _focusStack.indexOf(_focusedPanel.id);
-      if (_di >= 0) _focusStack.splice(_di, 1);
       _focusStack.push(_focusedPanel.id);
-      if (_focusStack.length > 8) _focusStack.shift();
+      if (_focusStack.length > 10) _focusStack.shift();
       _focusedPanel.el.style.boxShadow = '';
     }
     _focusedPanel = null;
