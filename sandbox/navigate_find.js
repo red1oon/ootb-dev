@@ -16,58 +16,56 @@
 
   function init(A, nav, getStartNavigation) {
 
-    // ── CSS injection ──
+    // ── S265 Phase 5: CSS injection — uses .bim-panel base, find-specific overrides ──
     var style = document.createElement('style');
     style.textContent = [
-      '#find-panel {',
-      '  position: fixed; top: 50%; right: 70px; transform: translateY(-50%);',
-      '  z-index: 50; width: 320px; max-width: 40vw; cursor: grab;',
-      '  background: rgba(30, 25, 8, 0.92); backdrop-filter: blur(20px);',
-      '  -webkit-backdrop-filter: blur(20px);',
-      '  border: 1px solid rgba(255, 191, 0, 0.15); border-radius: 12px;',
-      '  padding: 0; font-family: "Segoe UI", system-ui, sans-serif;',
-      '  color: #ffe0a0; box-shadow: 0 12px 40px rgba(0,0,0,0.5);',
-      '  display: none; max-height: 70vh; overflow: hidden;',
-      '}',
+      '#find-panel { top: 50%; right: 70px; transform: translateY(-50%);',
+      '  width: 320px; max-width: 40vw; padding: 0; max-height: 70vh; overflow: hidden; }',
       '#find-panel .find-search-bar {',
-      '  display: flex; align-items: center; gap: 8px; padding: 10px 14px;',
-      '  border-bottom: 1px solid rgba(255,191,0,0.1);',
+      '  display: flex; align-items: center; gap: 6px; padding: 10px 14px 8px;',
+      '  border-bottom: 1px solid rgba(255,255,255,0.08);',
       '}',
-      '#find-panel .find-search-bar .find-icon { font-size: 16px; opacity: 0.5; flex-shrink: 0; }',
+      '#find-panel .find-search-bar button { background: none; border: none; color: #888;',
+      '  cursor: pointer; padding: 4px; flex-shrink: 0; display: flex; align-items: center; }',
+      '#find-panel .find-search-bar button:hover { color: #4fc3f7; }',
+      '#find-panel .find-search-bar button.listening { color: #f44336; }',
+      '#find-panel .find-search-bar button svg { width: 18px; height: 18px; pointer-events: none; }',
+      '#find-panel #find-name {',
+      '  flex: 1; border: none; background: transparent; color: #e0e0e0;',
+      '  font-size: 14px; outline: none; padding: 4px 0;',
+      '  font-family: system-ui, sans-serif;',
+      '}',
+      '#find-panel #find-name::placeholder { color: rgba(255,255,255,0.25); }',
       '#find-panel .find-filters {',
       '  display: flex; gap: 6px; padding: 6px 14px;',
-      '  border-bottom: 1px solid rgba(255,191,0,0.08);',
+      '  border-bottom: 1px solid rgba(255,255,255,0.06);',
       '}',
-      '#find-panel select, #find-panel input[type="text"] {',
-      '  padding: 6px 8px; background: rgba(0,0,0,0.25); color: #ffe0a0;',
-      '  border: 1px solid rgba(255,191,0,0.12); border-radius: 6px; font-size: 13px;',
+      '#find-panel select {',
+      '  flex: 1; padding: 5px 6px; background: rgba(0,0,0,0.3); color: #ccc;',
+      '  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 11px;',
       '}',
-      '#find-panel #find-name {',
-      '  flex: 1; border: none; background: transparent; color: #ffe0a0;',
-      '  font-size: 15px; outline: none; padding: 4px 0;',
-      '}',
-      '#find-panel #find-name::placeholder { color: rgba(255,224,160,0.3); }',
-      '#find-panel select { flex: 1; font-size: 12px; }',
-      '#find-panel select option { background: #1e1908; color: #ffe0a0; }',
+      '#find-panel select option { background: #1a1a2e; color: #ccc; }',
       '#find-results { max-height: 280px; overflow-y: auto; }',
       '.find-result-item {',
-      '  padding: 8px 14px; cursor: pointer;',
-      '  border-bottom: 1px solid rgba(255,191,0,0.05);',
-      '  transition: background 0.1s; font-size: 13px; display: flex; align-items: center; gap: 10px;',
+      '  padding: 7px 14px; cursor: pointer;',
+      '  border-bottom: 1px solid rgba(255,255,255,0.04);',
+      '  transition: background 0.1s; font-size: 12px; display: flex; align-items: center; gap: 8px;',
       '}',
-      '.find-result-item:hover { background: rgba(255,191,0,0.1); }',
-      '.find-result-item.active { background: rgba(255,191,0,0.18); }',
-      '.find-result-item .ri-icon { font-size: 14px; opacity: 0.4; flex-shrink: 0; }',
+      '.find-result-item:hover { background: rgba(79,195,247,0.1); }',
+      '.find-result-item.active { background: rgba(79,195,247,0.18); }',
+      '.find-result-item .ri-icon { font-size: 13px; opacity: 0.4; flex-shrink: 0; }',
       '.find-result-item .ri-body { flex: 1; min-width: 0; }',
-      '.find-result-item .ri-name { color: #ffe0a0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
-      '.find-result-item .ri-meta { color: rgba(255,224,160,0.4); font-size: 11px; }',
-      '#find-actions { padding: 8px 14px; display: flex; gap: 8px; border-top: 1px solid rgba(255,191,0,0.1); }',
-      '#find-actions button { flex: 1; padding: 8px 0; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }',
-      '.find-nav-btn { background: rgba(255,191,0,0.25); color: #ffd54f; }',
-      '.find-nav-btn:hover { background: rgba(255,191,0,0.4); }',
-      '.find-close-btn { background: none; border: none !important; color: rgba(255,224,160,0.3); font-size: 22px; position: absolute; top: 6px; right: 8px; cursor: pointer; padding: 8px 12px; min-width: 44px; min-height: 44px; }',
-      '.find-close-btn:hover { color: #ffe0a0; }',
-      '#find-count { font-size: 11px; color: rgba(255,224,160,0.35); padding: 4px 14px 2px; }',
+      '.find-result-item .ri-name { color: #e0e0e0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
+      '.find-result-item .ri-meta { color: #888; font-size: 10px; }',
+      '#find-actions { padding: 8px 14px; display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08); }',
+      '#find-actions button { flex: 1; padding: 7px 0; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }',
+      '.find-nav-btn { background: rgba(79,195,247,0.2); color: #4fc3f7; }',
+      '.find-nav-btn:hover { background: rgba(79,195,247,0.35); }',
+      '#find-count { font-size: 10px; color: #666; padding: 3px 14px 1px; }',
+      '#find-chips { display: flex; gap: 4px; padding: 4px 14px 6px; flex-wrap: wrap; }',
+      '#find-chips button { background: rgba(255,255,255,0.06); color: #888; border: 1px solid rgba(255,255,255,0.08);',
+      '  border-radius: 10px; padding: 2px 8px; font-size: 10px; cursor: pointer; white-space: nowrap; }',
+      '#find-chips button:hover { color: #4fc3f7; border-color: rgba(79,195,247,0.3); }',
       // Nav HUD
       '#nav-hud {',
       '  position: fixed; top: 0; left: 0; width: 100%; height: 100%;',
@@ -75,7 +73,7 @@
       '}',
       '#nav-direction-cue {',
       '  position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%);',
-      '  background: rgba(255, 170, 0, 0.5); border-radius: 16px;',
+      '  background: rgba(79,195,247,0.4); border-radius: 16px;',
       '  font-size: 64px; padding: 20px 30px; color: #fff; text-align: center;',
       '  line-height: 1.2; opacity: 0; transition: opacity 0.3s;',
       '  pointer-events: none; z-index: 41;',
@@ -84,10 +82,13 @@
       '#nav-direction-cue .cue-label { font-size: 16px; font-weight: 600; margin-top: 4px; }',
       '#nav-bottom-bar {',
       '  position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%);',
-      '  background: rgba(255, 170, 0, 0.4); backdrop-filter: blur(8px);',
+      '  background: rgba(79,195,247,0.3); backdrop-filter: blur(8px);',
       '  border-radius: 12px; padding: 10px 20px; color: #fff; font-size: 13px;',
       '  pointer-events: auto; z-index: 41; white-space: nowrap;',
       '  text-align: center;',
+      '}',
+      '@media (max-width: 600px) {',
+      '  #find-panel { right: 8px; left: 8px; max-width: none; width: auto; top: auto; bottom: 60px; transform: none; }',
       '}',
     ].join('\n');
     document.head.appendChild(style);
@@ -98,13 +99,19 @@
 
     var panel = document.createElement('div');
     panel.id = 'find-panel';
+    panel.className = 'bim-panel';
     var _t = function(k, fb) { return (typeof _TRL !== 'undefined' && _TRL[k]) || fb; };
+    // §S265 Phase 5: Search icon (Lucide) + input + mic button in search bar
+    var _micSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>';
+    var _searchSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>';
     panel.innerHTML = [
-      '<button class="find-close-btn" id="find-close">&times;</button>',
+      '<span class="bim-panel-close" id="find-close">&times;</span>',
       '<div class="find-search-bar">',
-      '  <span class="find-icon">\uD83D\uDD0D</span>',
-      '  <input type="text" id="find-name" data-trl-placeholder="ui_find_placeholder" placeholder="' + _t('ui_find_placeholder', 'Search elements...') + '">',
+      '  <button id="find-search-icon" title="Search">' + _searchSvg + '</button>',
+      '  <input type="text" id="find-name" data-trl-placeholder="ui_find_placeholder" placeholder="' + _t('ui_find_placeholder', 'Search or ask: count doors, find pump...') + '">',
+      '  <button id="find-mic-btn" title="' + _t('ui_tt_voice', 'Voice search') + '">' + _micSvg + '</button>',
       '</div>',
+      '<div id="find-chips"></div>',
       '<div class="find-filters">',
       '  <select id="find-type"><option value="">' + _t('ui_find_all_types', 'All types') + '</option></select>',
       '  <select id="find-storey"><option value="">' + _t('ui_all_storeys', 'All Storeys') + '</option></select>',
@@ -116,8 +123,10 @@
       '</div>',
     ].join('');
     document.body.appendChild(panel);
-    // S265 Phase 4: make Find panel draggable so it doesn't obscure pill
+    // S265 Phase 5: make Find panel draggable
     if (A._makeDraggable) A._makeDraggable(panel);
+    // Pointer isolation
+    panel.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
 
     // Nav HUD elements
     var navHud = document.createElement('div');
@@ -134,8 +143,108 @@
     var elCount = document.getElementById('find-count');
     var elNavBtn = document.getElementById('find-navigate-btn');
     var elClose = document.getElementById('find-close');
+    var elChips = document.getElementById('find-chips');
+    var elMicBtn = document.getElementById('find-mic-btn');
 
-    // ── Open find panel (called from nlp.js) ──
+    // ── S265 Phase 5: Voice mic inside Find panel ──
+    var _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var _recognition = null, _listening = false;
+    if (_SR && elMicBtn) {
+      elMicBtn.addEventListener('pointerup', function(e) {
+        e.stopPropagation();
+        if (_listening) { _recognition.stop(); return; }
+        _recognition = new _SR();
+        _recognition.continuous = false;
+        _recognition.interimResults = true;
+        _recognition.lang = 'en-US';
+        _recognition.onstart = function() {
+          _listening = true;
+          elMicBtn.classList.add('listening');
+          console.log('§FIND_VOICE_START');
+        };
+        _recognition.onresult = function(ev) {
+          for (var i = ev.resultIndex; i < ev.results.length; i++) {
+            var t = ev.results[i][0].transcript;
+            if (ev.results[i].isFinal) {
+              elName.value = t;
+              elName.style.fontStyle = 'normal';
+              A.inputWasVoice = true;
+              _handleInput(t);
+              console.log('§FIND_VOICE_FINAL "' + t + '"');
+            } else {
+              elName.value = t;
+              elName.style.fontStyle = 'italic';
+            }
+          }
+        };
+        _recognition.onerror = function(ev) { console.log('§FIND_VOICE_ERR ' + ev.error); };
+        _recognition.onend = function() {
+          _listening = false;
+          elMicBtn.classList.remove('listening');
+          elName.style.fontStyle = 'normal';
+        };
+        _recognition.start();
+      });
+    } else if (elMicBtn) {
+      elMicBtn.style.display = 'none'; // no Web Speech API
+    }
+
+    // ── S265 Phase 5: Dual-purpose input — NLP queries vs element search ──
+    // If input matches NLP pattern (count/cost/show/total), run NLP. Otherwise, element search.
+    var _nlpRe = /^(count|how many|number of|total|cost|show|list|what|find|search)\b/i;
+    function _handleInput(text) {
+      var trimmed = (text || '').trim();
+      if (!trimmed) { runSearch(); return; }
+      // NLP query detection
+      if (_nlpRe.test(trimmed) && A._nlpExecute) {
+        A._nlpExecute(trimmed);
+        // If NLP handled it (e.g. "find pump" opens this same panel), don't double-search
+        return;
+      }
+      // Regular element search
+      populateDropdowns();
+      runSearch();
+    }
+
+    // ── S265 Phase 5: Context-aware chips from current building ──
+    function buildChips() {
+      if (!elChips || !A.db) return;
+      elChips.innerHTML = '';
+      var bld = A.activeBuilding || '';
+      try {
+        // Top 4 IFC classes by count
+        var sql = 'SELECT ifc_class, COUNT(*) as cnt FROM elements_meta' +
+          (bld ? ' WHERE building = ?' : '') + ' GROUP BY ifc_class ORDER BY cnt DESC LIMIT 4';
+        var rows = A.db.exec(sql, bld ? [bld] : []);
+        if (rows.length > 0) {
+          rows[0].values.forEach(function(r) {
+            var chip = document.createElement('button');
+            chip.textContent = friendlyClass(r[0]);
+            chip.addEventListener('pointerup', function(e) {
+              e.stopPropagation();
+              elType.value = r[0];
+              populateDropdowns();
+              runSearch();
+            });
+            elChips.appendChild(chip);
+          });
+        }
+        // NLP quick-actions
+        ['count doors', 'total cost'].forEach(function(ex) {
+          var chip = document.createElement('button');
+          chip.textContent = ex;
+          chip.style.color = '#4fc3f7';
+          chip.addEventListener('pointerup', function(e) {
+            e.stopPropagation();
+            elName.value = ex;
+            _handleInput(ex);
+          });
+          elChips.appendChild(chip);
+        });
+      } catch (e) { /* ignore */ }
+    }
+
+    // ── Open find panel (called from pill, nlp.js, or directly) ──
     A.openFindPanel = function(searchTerm) {
       nav.voiceMode = !!A.inputWasVoice;
       // Exit walk mode from previous navigation — ensures next Navigate starts from main entrance
@@ -162,7 +271,8 @@
       panel.style.display = 'block';
       elName.value = searchTerm || '';
       populateDropdowns();
-      runSearch();
+      buildChips();
+      if (searchTerm) { _handleInput(searchTerm); } else { runSearch(); }
       console.log('[S233] §NAV_FIND_OPEN term="' + (searchTerm || '') + '" voice=' + nav.voiceMode);
     };
 
@@ -636,9 +746,13 @@
     elType.onchange = function() { populateDropdowns(); runSearch(); };
     elStorey.onchange = function() { populateDropdowns(); runSearch(); };
     elName.addEventListener('input', debounce(function() {
-      populateDropdowns();
-      runSearch();
+      _handleInput(elName.value);
     }, 300));
+    // Enter key triggers immediate search/NLP
+    elName.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); _handleInput(elName.value); }
+      if (e.key === 'Escape') { closeFindPanel(); }
+    });
 
     function debounce(fn, ms) {
       var t; return function() { clearTimeout(t); t = setTimeout(fn, ms); };

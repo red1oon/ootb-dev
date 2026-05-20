@@ -18,10 +18,10 @@
   #canvas { width: 100vw; height: 100vh; display: block; touch-action: none; }
   #hud {
     position: fixed; top: 16px; left: 16px; z-index: 10;
-    background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px 12px;
+    background: rgba(10,10,30,0.50); border-radius: 8px; padding: 8px 12px;
     font-size: 12px; line-height: 1.5;
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   }
   #hud h2 { font-size: 13px; margin-bottom: 4px; color: #4fc3f7; }
   #hud .stat { color: #ccc; }
@@ -35,8 +35,8 @@
   .bld-card .cnt { color: #888; font-size: 10px; }
   #status {
     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
-    background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px 20px;
-    backdrop-filter: blur(8px);
+    background: rgba(10,10,30,0.50); border-radius: 6px; padding: 8px 20px;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     font-size: 13px; color: #4fc3f7;
   }
   .disc-bar { display: inline-block; height: 10px; border-radius: 2px; margin-right: 1px; }
@@ -51,7 +51,7 @@
   /* ── S265 Phase 5: .bim-panel — unified glass panel styling ── */
   .bim-panel {
     position: fixed; z-index: 200;
-    background: rgba(10,10,30,0.85); border-radius: 12px;
+    background: rgba(10,10,30,0.50); border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.15);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     font-family: system-ui, -apple-system, sans-serif; font-size: 12px;
@@ -107,9 +107,9 @@
   #hud #disc-body button.active { opacity: 1.0; text-decoration: none; }
   #info-panel {
     position: fixed; bottom: 50px; right: 70px; z-index: 10;
-    background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px 16px;
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(8px);
+    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 12px 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     font-size: 12px; line-height: 1.6; min-width: 240px; max-width: 320px;
     display: none; pointer-events: auto;
   }
@@ -121,7 +121,7 @@
   #icon-pill {
     position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 500;
     display: flex; flex-direction: column; gap: 4px;
-    background: rgba(10,10,30,0.65); border-radius: 24px; padding: 8px 6px;
+    background: rgba(10,10,30,0.50); border-radius: 24px; padding: 8px 6px;
     border: 1px solid rgba(255,255,255,0.08);
   }
   #icon-pill button {
@@ -137,8 +137,8 @@
   /* ── Overflow menu: dropdown from pill, hidden by default ── */
   #search-box {
     position: fixed; top: 50%; right: 62px; transform: translateY(-50%); z-index: 490;
-    background: rgba(10,10,30,0.85); border-radius: 12px; padding: 8px;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 8px;
+    border: 1px solid rgba(255,255,255,0.15);
     display: none; max-width: 280px;
   }
   #search-box.overflow-open { display: block; }
@@ -175,9 +175,9 @@
   /* ── Section Cut slider ── */
   #section-slider-panel {
     position: fixed; top: 56px; right: 16px; z-index: 10;
-    background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px 14px;
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(8px);
+    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     display: none; min-width: 200px;
   }
   #section-slider-panel label { color: #4fc3f7; font-size: 12px; }
@@ -186,19 +186,8 @@
   }
   #section-slider-panel .section-val { color: #ccc; font-size: 11px; text-align: right; display: block; }
 
-  /* ── Sunglass / Ambience slider ── */
-  #sunglass-slider-panel {
-    position: fixed; top: 90px; right: 70px; z-index: 200;
-    background: rgba(0,0,0,0.75); border-radius: 8px; padding: 8px 14px;
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(8px);
-    display: none; min-width: 200px;
-  }
-  #sunglass-slider-panel label { color: #4fc3f7; font-size: 12px; }
-  #sunglass-slider-panel input[type=range] {
-    width: 100%; margin: 6px 0 2px; accent-color: #ff8c00; cursor: pointer;
-  }
-  #sunglass-slider-panel .section-val { color: #ccc; font-size: 11px; text-align: right; display: block; }
+  /* ── Sunglass / Ambience slider — S265 Phase 5: uses .bim-panel class now ── */
+  /* Legacy ID overrides removed — styling from .bim-panel */
 
   /* ── Site Camera (mobile only) ── */
   #site-cam-btn {
@@ -247,8 +236,9 @@
   /* ── Issues Panel ── */
   #issues-panel {
     position: fixed; top: 60px; right: 70px; z-index: 50;
-    background: #1a1a2e; border-radius: 8px; padding: 12px 16px;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 12px 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     pointer-events: auto;
     font-size: 12px; line-height: 1.6; width: 340px; max-height: 70vh;
     display: none; flex-direction: column;
@@ -344,7 +334,7 @@
 
     /* Section slider */
     #section-slider-panel { top: auto !important; bottom: 80px; left: 8px; right: 8px; min-width: auto; z-index: 12 !important; }
-    #sunglass-slider-panel { top: auto !important; bottom: 80px; left: 8px; right: 8px; min-width: auto; z-index: 12 !important; }
+    #sunglass-slider-panel { top: auto !important; bottom: 80px; left: 8px; right: 8px; min-width: auto; max-width: none; z-index: 200 !important; }
 
     /* §S265: Larger close/× targets on mobile for all panels */
     .panel-toggle { font-size: 22px !important; padding: 8px 12px !important; min-width: 44px; min-height: 44px; display: inline-flex !important; align-items: center; justify-content: center; }
@@ -469,7 +459,8 @@
 <!-- S265 Phase 4: storey-panel and disc-panel moved inside #hud as accordion sections -->
 <button id="site-cam-btn" onclick="openSiteCamera()" data-trl-title="ui_tt_sitecam" title="Site Camera" style="display:none">&#128247;</button>
 <button id="walk-mode-btn" onclick="toggleWalkMode()" data-trl-title="ui_tt_walk" title="Walk Mode">&#128694;</button>
-<button id="nlp-btn" onclick="toggleNlp()" data-trl-title="ui_tt_voice" title="Voice Search" style="display:inline-block;position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:15;padding:6px 10px;background:#9c27b0;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;min-height:0;box-shadow:0 2px 8px rgba(156,39,176,0.4)">&#127908;</button>
+<!-- S265 Phase 5: NLP mic merged into Find panel — standalone button removed -->
+<button id="nlp-btn" style="display:none"></button>
 <div id="walk-anchor-prompt">
   <h3 data-trl="ui_walk_title">Walk Mode</h3>
   <p data-trl="ui_walk_instructions">Stand at the building entrance and tap SET to anchor your GPS position to the model.</p>
@@ -667,29 +658,13 @@
 })();
 </script>
 
-<div id="sunglass-slider-panel">
-  <label><span data-trl="ui_sunglass">Color Studio</span> <span class="panel-toggle" onclick="toggleSunglass()" style="float:right;cursor:pointer">&times;</span></label>
-  <input type="range" id="sunglass-slider" min="0" max="100" value="0" step="1" oninput="updateAmbience(this.value)">
-  <span class="section-val" id="sunglass-val">Off</span>
-  <hr style="border-color:rgba(255,255,255,0.1);margin:6px 0">
-  <label>Exposure</label>
-  <input type="range" id="sl-exposure" min="0.1" max="3.0" value="0.45" step="0.05" oninput="updateLighting('exposure',this.value)">
-  <span class="section-val" id="sl-exposure-val">0.45</span>
-  <label>Sun</label>
-  <input type="range" id="sl-sun" min="0" max="5.0" value="1.4" step="0.05" oninput="updateLighting('sun',this.value)">
-  <span class="section-val" id="sl-sun-val">1.40</span>
-  <label>Ambient</label>
-  <input type="range" id="sl-ambient" min="0" max="2.0" value="0.25" step="0.01" oninput="updateLighting('ambient',this.value)">
-  <span class="section-val" id="sl-ambient-val">0.25</span>
-  <label>Hemisphere</label>
-  <input type="range" id="sl-hemi" min="0" max="2.0" value="0.40" step="0.01" oninput="updateLighting('hemi',this.value)">
-  <span class="section-val" id="sl-hemi-val">0.40</span>
-  <!-- Shadow, Night, Background moved to overflow menu (S265) -->
-  <button id="bg-btn" style="display:none"></button>
-  <button id="shadow-btn" style="display:none"></button>
-  <button id="night-btn" style="display:none"></button>
-  <span class="section-val" id="night-val" style="display:none">Off</span>
-</div>
+<!-- S265 Phase 5: sunglass panel built by JS A._buildSunglassPanel() -->
+<div id="sunglass-slider-panel" style="display:none"></div>
+<!-- Hidden legacy buttons referenced by tools.js -->
+<button id="bg-btn" style="display:none"></button>
+<button id="shadow-btn" style="display:none"></button>
+<button id="night-btn" style="display:none"></button>
+<span class="section-val" id="night-val" style="display:none">Off</span>
 
 <!-- Site Camera Overlay (mobile only) -->
 <div id="site-cam-overlay">
@@ -758,11 +733,11 @@
 <script src="lib/httpvfs.js?v=1" onerror="console.warn('§LOAD_FAIL httpvfs.js — range-request streaming disabled')"></script>
 <script src="qrcode.min.js?v=1" onerror="console.warn('§LOAD_FAIL qrcode.min.js — QR sharing disabled')"></script>
 <script src="config.js?v=4" onerror="console.warn('§LOAD_FAIL config.js')"></script>
-<script src="scene.js?v=25" onerror="console.warn('§LOAD_FAIL scene.js')"></script>
+<script src="scene.js?v=27" onerror="console.warn('§LOAD_FAIL scene.js')"></script>
 <script src="helpers.js?v=4" onerror="console.warn('§LOAD_FAIL helpers.js')"></script>
 <script src="streaming.js?v=42" onerror="console.warn('§LOAD_FAIL streaming.js')"></script>
 <script src="dlod.js?v=5" onerror="console.warn('§LOAD_FAIL dlod.js')"></script>
-<script src="panels.js?v=13" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
+<script src="panels.js?v=14" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
 <script src="tools.js?v=21" onerror="console.warn('§LOAD_FAIL tools.js')"></script>
 <script src="picking.js?v=24" onerror="console.warn('§LOAD_FAIL picking.js')"></script>
 <script src="tour.js?v=3" onerror="console.warn('§LOAD_FAIL tour.js')"></script>
@@ -807,7 +782,7 @@
 <script src="wizard_classify.js?v=1" onerror="console.warn('§LOAD_FAIL wizard_classify.js')"></script>
 <script src="precision_cam.js?v=2" onerror="console.warn('§LOAD_FAIL precision_cam.js')"></script>
 <script src="time_machine.js?v=44" onerror="console.warn('§LOAD_FAIL time_machine.js')"></script>
-<script src="main.js?v=29"></script>
+<script src="main.js?v=30"></script>
 <!-- Styled tooltip bubbles for [data-trl-title] buttons — appended to body, not clipped by overflow:hidden -->
 <style>#ootb-tip{display:none;position:fixed;z-index:9990;background:rgba(10,10,30,0.92);color:#4fc3f7;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid rgba(79,195,247,0.35);pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.4)}</style>
 <script>
@@ -847,7 +822,7 @@ if(new URLSearchParams(location.search).get('embedded')!=='true'){
 </script>
 <script>
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=414')
+  navigator.serviceWorker.register('sw.js?v=418')
     .then(function(r){console.log('§SW_REG scope='+r.scope)})
     .catch(function(e){console.warn('§SW_REG_FAIL',e)});
 }
