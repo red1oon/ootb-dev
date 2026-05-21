@@ -359,8 +359,9 @@ var _xPositions = [];   // current committed X grid line positions (Three.js coo
 var _zPositions = [];   // current committed Z grid line positions (Three.js coords)
 var _xLabels = [];      // labels for X lines (A, B, C...)
 var _zLabels = [];      // labels for Z lines (1, 2, 3...)
-var _extend = 3;        // grid lines extend beyond envelope
-var _lineColor = 0xff6666;
+var _extend = 8;        // grid lines extend beyond envelope (fixed, not relative)
+var _rosettaExtend = 14; // Rosetta template lines pulled further out for clarity
+var _lineColor = 0xff4444;
 var _dimColor = '#4fc3f7';
 var _bubbleColor = '#ff8888';
 
@@ -406,32 +407,32 @@ function _renderGrid(A) {
   for (var a = 0; a < _xPositions.length; a++) {
     var xp = _xPositions[a];
     _addGridLine(xp, e.y0, e.z0 - _extend, xp, e.y0, e.z1 + _extend, _lineColor);
-    _addBubble(_xLabels[a] || String.fromCharCode(65 + a), xp, e.y0, e.z0 - _extend - 2, _bubbleColor);
+    _addBubble(_xLabels[a] || String.fromCharCode(65 + a), xp, e.y0, e.z0 - _extend - 5, _bubbleColor);
   }
 
   // ── Draw Z grid lines (numbered) ──
   for (var b = 0; b < _zPositions.length; b++) {
     var zp = _zPositions[b];
     _addGridLine(e.x0 - _extend, e.y0, zp, e.x1 + _extend, e.y0, zp, _lineColor);
-    _addBubble(_zLabels[b] || String(b + 1), e.x0 - _extend - 2, e.y0, zp, _bubbleColor);
+    _addBubble(_zLabels[b] || String(b + 1), e.x0 - _extend - 5, e.y0, zp, _bubbleColor);
   }
 
   // ── Span dimensions between X lines ──
   for (var sx = 1; sx < _xPositions.length; sx++) {
     var span = Math.abs(_xPositions[sx] - _xPositions[sx - 1]);
     var midX = (_xPositions[sx] + _xPositions[sx - 1]) / 2;
-    _addDimLabel(span.toFixed(2) + 'm', midX, e.y0, e.z0 - _extend - 0.5, _dimColor);
+    _addDimLabel(span.toFixed(2) + 'm', midX, e.y0, e.z0 - _extend - 2, _dimColor);
   }
 
   // ── Span dimensions between Z lines ──
   for (var sz = 1; sz < _zPositions.length; sz++) {
     var spanZ = Math.abs(_zPositions[sz] - _zPositions[sz - 1]);
     var midZ = (_zPositions[sz] + _zPositions[sz - 1]) / 2;
-    _addDimLabel(spanZ.toFixed(2) + 'm', e.x0 - _extend - 0.5, e.y0, midZ, _dimColor);
+    _addDimLabel(spanZ.toFixed(2) + 'm', e.x0 - _extend - 2, e.y0, midZ, _dimColor);
   }
 
   // ── Height label on vertical ──
-  _addDimLabel(A._bom.envelope.height.toFixed(1) + 'm', e.x0 - 2, (e.y0 + e.y1) / 2, e.z0 - 2, _dimColor);
+  _addDimLabel(A._bom.envelope.height.toFixed(1) + 'm', e.x0 - 4, (e.y0 + e.y1) / 2, e.z0 - 4, _dimColor);
 
   // Also render Rosetta template lines (grey/gold depending on mode)
   _renderRosettaTemplates(A);
@@ -487,8 +488,13 @@ function _addGridLine(x0, y0, z0, x1, y1, z1, color) {
     new THREE.Vector3(x0, y0, z0),
     new THREE.Vector3(x1, y1, z1)
   ]);
-  var mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5 });
+  var mat = new THREE.LineDashedMaterial({
+    color: color, transparent: true, opacity: 0.85,
+    dashSize: 1.0, gapSize: 0.4, depthTest: false
+  });
   var line = new THREE.Line(geo, mat);
+  line.computeLineDistances();
+  line.renderOrder = 5;
   _gridGroup.add(line);
 }
 
@@ -507,7 +513,8 @@ function _addDimLabel(text, x, y, z, color) {
   var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
   var sprite = new THREE.Sprite(spriteMat);
   sprite.position.set(x, y, z);
-  sprite.scale.set(6, 1.5, 1);
+  sprite.scale.set(8, 2, 1);
+  sprite.renderOrder = 6;
   _gridGroup.add(sprite);
 }
 
@@ -533,7 +540,8 @@ function _addBubble(text, x, y, z, color) {
   var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
   var sprite = new THREE.Sprite(spriteMat);
   sprite.position.set(x, y, z);
-  sprite.scale.set(3, 3, 1);
+  sprite.scale.set(4, 4, 1);
+  sprite.renderOrder = 6;
   _gridGroup.add(sprite);
 }
 
@@ -732,59 +740,62 @@ function _renderRosettaTemplates(A) {
   var opacity = _calibrationMode ? 0.8 : 0.4;
   var dashSize = 0.5, gapSize = 0.3;
 
-  // Template X-line: sits at x = envelope left - 5m, runs along Z
-  var txPos = e.x0 - 5;
+  // Template X-line: sits further left, runs along Z — pulled out for clarity
+  var txPos = e.x0 - _rosettaExtend;
   var txGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(txPos, e.y0, e.z0 - _extend),
-    new THREE.Vector3(txPos, e.y0, e.z1 + _extend)
+    new THREE.Vector3(txPos, e.y0, e.z0 - _rosettaExtend),
+    new THREE.Vector3(txPos, e.y0, e.z1 + _rosettaExtend)
   ]);
   var txMat = new THREE.LineDashedMaterial({
     color: color, dashSize: dashSize, gapSize: gapSize,
-    transparent: true, opacity: opacity
+    transparent: true, opacity: opacity, depthTest: false
   });
   var txLine = new THREE.Line(txGeo, txMat);
   txLine.computeLineDistances();
+  txLine.renderOrder = 4;
   txLine.userData = { rosetta: true, axis: 'X', templatePos: txPos };
   _rosettaGroup.add(txLine);
   _rosettaTemplates.push({ axis: 'X', line: txLine, pos: txPos });
 
-  // Template Z-line: sits at z = envelope front - 5m, runs along X
-  var tzPos = e.z0 - 5;
+  // Template Z-line: sits further forward, runs along X
+  var tzPos = e.z0 - _rosettaExtend;
   var tzGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(e.x0 - _extend, e.y0, tzPos),
-    new THREE.Vector3(e.x1 + _extend, e.y0, tzPos)
+    new THREE.Vector3(e.x0 - _rosettaExtend, e.y0, tzPos),
+    new THREE.Vector3(e.x1 + _rosettaExtend, e.y0, tzPos)
   ]);
   var tzMat = new THREE.LineDashedMaterial({
     color: color, dashSize: dashSize, gapSize: gapSize,
-    transparent: true, opacity: opacity
+    transparent: true, opacity: opacity, depthTest: false
   });
   var tzLine = new THREE.Line(tzGeo, tzMat);
   tzLine.computeLineDistances();
+  tzLine.renderOrder = 4;
   tzLine.userData = { rosetta: true, axis: 'Z', templatePos: tzPos };
   _rosettaGroup.add(tzLine);
   _rosettaTemplates.push({ axis: 'Z', line: tzLine, pos: tzPos });
 
-  // Template Y-line (horizontal height): sits below ground, runs vertically
-  var tyPos = e.y0 - 3;
+  // Template Y-line (height): below ground corner, runs vertically
+  var tyPos = e.y0 - 5;
   var tyGeo = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(e.x0 - _extend, tyPos, e.z0 - _extend),
-    new THREE.Vector3(e.x0 - _extend, e.y1 + 3, e.z0 - _extend)
+    new THREE.Vector3(e.x0 - _rosettaExtend, tyPos, e.z0 - _rosettaExtend),
+    new THREE.Vector3(e.x0 - _rosettaExtend, e.y1 + 5, e.z0 - _rosettaExtend)
   ]);
   var tyMat = new THREE.LineDashedMaterial({
     color: color, dashSize: dashSize, gapSize: gapSize,
-    transparent: true, opacity: opacity
+    transparent: true, opacity: opacity, depthTest: false
   });
   var tyLine = new THREE.Line(tyGeo, tyMat);
   tyLine.computeLineDistances();
+  tyLine.renderOrder = 4;
   tyLine.userData = { rosetta: true, axis: 'Y', templatePos: tyPos };
   _rosettaGroup.add(tyLine);
   _rosettaTemplates.push({ axis: 'Y', line: tyLine, pos: tyPos });
 
-  // Label the template lines
+  // Label the template lines — further out from grid for clarity
   var labelColor = _calibrationMode ? '#ffc107' : '#888';
-  _addRosettaLabel('X', txPos, e.y0, e.z0 - _extend - 3, labelColor);
-  _addRosettaLabel('Z', e.x0 - _extend - 3, e.y0, tzPos, labelColor);
-  _addRosettaLabel('Y', e.x0 - _extend - 3, tyPos, e.z0 - _extend - 3, labelColor);
+  _addRosettaLabel('X', txPos, e.y0, e.z0 - _rosettaExtend - 4, labelColor);
+  _addRosettaLabel('Z', e.x0 - _rosettaExtend - 4, e.y0, tzPos, labelColor);
+  _addRosettaLabel('Y', e.x0 - _rosettaExtend - 4, tyPos, e.z0 - _rosettaExtend - 4, labelColor);
 }
 
 function _addRosettaLabel(text, x, y, z, color) {
