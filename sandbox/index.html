@@ -133,10 +133,11 @@
   #icon-pill button:hover { background: rgba(255,255,255,0.1); }
   #icon-pill button.active { background: #4fc3f7; color: #000; }
   #icon-pill button svg { width: 20px; height: 20px; pointer-events: none; }
-  /* S266: Doc pill — red mode */
-  #icon-pill.doc-mode { background: rgba(140,20,20,0.55); border-color: rgba(255,80,80,0.2); }
-  #icon-pill.doc-mode button:hover { background: rgba(255,255,255,0.12); }
-  #icon-pill.doc-mode button.active { background: #f44336; color: #fff; }
+  /* S266: Doc pill — glass background, red icons */
+  #icon-pill.doc-mode { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); }
+  #icon-pill.doc-mode button { color: #f44336; }
+  #icon-pill.doc-mode button:hover { background: rgba(255,80,80,0.15); }
+  #icon-pill.doc-mode button.active { background: rgba(244,67,54,0.25); color: #ff6659; }
 
   /* ── Overflow menu: dropdown from pill, hidden by default ── */
   #search-box {
