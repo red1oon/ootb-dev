@@ -27,6 +27,12 @@ var ICONS = {
   camera:    { svg: '<path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/>', trl: 'ui_tt_screenshot', key: 'S', desc: 'Screenshot' },
   barChart:  { svg: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>', trl: 'ui_tt_export', key: null, desc: '4D/5D Export' },
   home:      { svg: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', trl: 'ui_tt_home', key: null, desc: 'Home' },
+  // S266: Doc pill icons — New From Reference designer
+  doc:       { svg: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>', trl: 'ui_tt_doc', key: 'D', desc: 'Document' },
+  grid:      { svg: '<path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/>', trl: 'ui_tt_grid', key: null, desc: 'Grid' },
+  next:      { svg: '<path d="m9 18 6-6-6-6"/>', trl: 'ui_tt_next', key: null, desc: 'Next Phase' },
+  save:      { svg: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>', trl: 'ui_tt_save', key: null, desc: 'Save Design' },
+  folderOpen: { svg: '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>', trl: 'ui_tt_open', key: null, desc: 'Open Design' },
   // P1 sunglass slider icons
   sun:       { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', trl: 'ui_sun', key: null, desc: 'Sun intensity' },
   sunDim:    { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.66 6.34h.01"/><path d="M17.66 17.66h.01"/><path d="M6.34 17.66h.01"/><path d="M6.34 6.34h.01"/>', trl: 'ui_exposure', key: null, desc: 'Exposure' },
@@ -743,6 +749,70 @@ function setupPanels(A) {
       };
     }
   }
+
+  // ── S266: Doc Pill — swap icon-pill between main mode and doc (red) mode ──
+  var _docMode = false;
+  var _mainPillHTML = ''; // stash main pill innerHTML for restore
+  window.toggleDocPill = function() {
+    var pill = document.getElementById('icon-pill');
+    if (!pill) return;
+    if (_docMode) {
+      // restore main pill
+      pill.innerHTML = _mainPillHTML;
+      pill.classList.remove('doc-mode');
+      _docMode = false;
+      console.log('§DOC_PILL mode=main');
+    } else {
+      // stash main pill and swap to doc mode
+      _mainPillHTML = pill.innerHTML;
+      pill.innerHTML = '';
+      pill.classList.add('doc-mode');
+      // 1. Home — return to main pill
+      var btnHome = A.icon('home', { size: 24, title: 'Home', onClick: function() { toggleDocPill(); } });
+      btnHome.id = 'doc-home-btn';
+      pill.appendChild(btnHome);
+      // 2. Grid — 2D grid + lengths + bubbles toggle
+      var _gridOn = false;
+      var btnGrid = A.icon('grid', { size: 24, title: 'Grid', onClick: function() {
+        _gridOn = !_gridOn;
+        btnGrid.classList.toggle('active', _gridOn);
+        console.log('§DOC_GRID on=' + _gridOn);
+        // TODO S266: wire to GridDims.detectGrids() + grid_overlay
+      }});
+      btnGrid.id = 'doc-grid-btn';
+      pill.appendChild(btnGrid);
+      // 3. TM — Time Machine replay
+      var btnTM = A.icon('clock', { size: 24, title: 'Time Machine', onClick: function() {
+        if (window._isMobile) { APP.status.textContent = 'Time Machine — Desktop only'; return; }
+        if (typeof toggleTimeMachine === 'function') toggleTimeMachine();
+      }});
+      btnTM.id = 'doc-tm-btn';
+      pill.appendChild(btnTM);
+      // 4. Next — advance one construction phase
+      var btnNext = A.icon('next', { size: 24, title: 'Next Phase', onClick: function() {
+        console.log('§DOC_NEXT advance construction phase');
+        // TODO S266: wire to Gantt step-forward
+      }});
+      btnNext.id = 'doc-next-btn';
+      pill.appendChild(btnNext);
+      // 5. Open — load saved NewIFC.db from IndexedDB
+      var btnOpen = A.icon('folderOpen', { size: 24, title: 'Open Design', onClick: function() {
+        console.log('§DOC_OPEN list saved designs');
+        // TODO S266: wire to IndexedDB NewIFC.db listing
+      }});
+      btnOpen.id = 'doc-open-btn';
+      pill.appendChild(btnOpen);
+      // 6. Save — materialize NewIFC.db
+      var btnSave = A.icon('save', { size: 24, title: 'Save Design', onClick: function() {
+        console.log('§DOC_SAVE materialize');
+        // TODO S266: wire to materialization service
+      }});
+      btnSave.id = 'doc-save-btn';
+      pill.appendChild(btnSave);
+      _docMode = true;
+      console.log('§DOC_PILL mode=doc icons=6');
+    }
+  };
 
   // Panel toggle (S250 §5 — hides ALL UI chrome for clean screenshots)
   // S265 Phase 4: HUD auto-collapse on mobile (5s after last interaction)

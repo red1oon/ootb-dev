@@ -133,6 +133,10 @@
   #icon-pill button:hover { background: rgba(255,255,255,0.1); }
   #icon-pill button.active { background: #4fc3f7; color: #000; }
   #icon-pill button svg { width: 20px; height: 20px; pointer-events: none; }
+  /* S266: Doc pill — red mode */
+  #icon-pill.doc-mode { background: rgba(140,20,20,0.55); border-color: rgba(255,80,80,0.2); }
+  #icon-pill.doc-mode button:hover { background: rgba(255,255,255,0.12); }
+  #icon-pill.doc-mode button.active { background: #f44336; color: #fff; }
 
   /* ── Overflow menu: dropdown from pill, hidden by default ── */
   #search-box {
@@ -411,7 +415,7 @@
 </div>
 <!-- ── Icon Pill: 5 primary icons, right edge, vertical ── -->
 <div id="icon-pill">
-  <button onclick="if(window._isMobile){APP.status.textContent='Time Machine — Desktop only';return}if(typeof toggleTimeMachine==='function')toggleTimeMachine();event.stopPropagation()" data-trl-title="ui_tt_tm" title="Time Machine"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></button>
+  <button id="doc-btn" onclick="if(typeof toggleDocPill==='function')toggleDocPill();event.stopPropagation()" title="Red Pill"><img src="redpill.png" width="24" height="24" alt="Red Pill" style="pointer-events:none"></button>
   <button id="pill-measure" onclick="toggleMeasure();event.stopPropagation()" data-trl-title="ui_tt_measure" title="Measure"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></button>
   <button onclick="if(typeof APP!=='undefined'&&APP.openFindPanel)APP.openFindPanel();event.stopPropagation()" data-trl-title="ui_tt_find" title="Find"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg></button>
   <button onclick="if(typeof APP!=='undefined'&&APP.quickShare)APP.quickShare();event.stopPropagation()" data-trl-title="ui_tt_share" title="Share"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg></button>
@@ -737,7 +741,7 @@
 <script src="helpers.js?v=4" onerror="console.warn('§LOAD_FAIL helpers.js')"></script>
 <script src="streaming.js?v=42" onerror="console.warn('§LOAD_FAIL streaming.js')"></script>
 <script src="dlod.js?v=5" onerror="console.warn('§LOAD_FAIL dlod.js')"></script>
-<script src="panels.js?v=16" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
+<script src="panels.js?v=17" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
 <script src="tools.js?v=21" onerror="console.warn('§LOAD_FAIL tools.js')"></script>
 <script src="picking.js?v=24" onerror="console.warn('§LOAD_FAIL picking.js')"></script>
 <script src="tour.js?v=3" onerror="console.warn('§LOAD_FAIL tour.js')"></script>
