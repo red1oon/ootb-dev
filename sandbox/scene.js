@@ -151,6 +151,26 @@ function setupScene(A) {
     console.log('§WEBGL_DISPOSED on beforeunload');
   });
 
+  // §S266: Recover from Chrome background-tab context kill
+  canvas.addEventListener('webglcontextlost', function(e) {
+    e.preventDefault();  // tell browser we want to restore
+    console.log('§WEBGL_CONTEXT_LOST — Chrome background throttle, will restore on focus');
+  });
+  canvas.addEventListener('webglcontextrestored', function() {
+    console.log('§WEBGL_CONTEXT_RESTORED — re-rendering');
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.render(scene, camera);
+    if (A.markDirty) A.markDirty();
+  });
+  // Force re-render when tab regains focus after being backgrounded
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && renderer.getContext().isContextLost && !renderer.getContext().isContextLost()) {
+      renderer.render(scene, camera);
+      if (A.markDirty) A.markDirty();
+      console.log('§WEBGL_REFOCUS re-rendered on tab focus');
+    }
+  });
+
   // Raycaster
   A.raycaster = new THREE.Raycaster();
   A.mouse = new THREE.Vector2();
