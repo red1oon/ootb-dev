@@ -145,34 +145,24 @@ function setupScene(A) {
   A.pointerDownPos = { x: 0, y: 0 };
 
   // §S266: Recover from Chrome background-tab WebGL context kill (idle throttling)
-  // Chrome may permanently kill the context — reload is the only reliable recovery.
+  // Don't auto-reload — user loses Red Pill / Doc context. Just show a banner to tap.
   canvas.addEventListener('webglcontextlost', function(e) {
     e.preventDefault();
-    console.log('§WEBGL_CONTEXT_LOST — waiting 2s for restore, else reload');
-    A._contextLostAt = Date.now();
+    console.log('§WEBGL_CONTEXT_LOST — tap banner to reload');
+    var banner = document.createElement('div');
+    banner.id = 'webgl-lost-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#cc0000;color:#fff;text-align:center;padding:14px;font-size:15px;font-weight:bold;cursor:pointer';
+    banner.textContent = '3D view lost (Chrome idle throttle) — tap here to reload';
+    banner.onclick = function() { location.reload(); };
+    document.body.appendChild(banner);
   });
   canvas.addEventListener('webglcontextrestored', function() {
-    A._contextLostAt = 0;
+    var banner = document.getElementById('webgl-lost-banner');
+    if (banner) banner.remove();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
     if (A.markDirty) A.markDirty();
     console.log('§WEBGL_CONTEXT_RESTORED');
-  });
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-      if (A._contextLostAt && Date.now() - A._contextLostAt > 2000) {
-        console.log('§WEBGL_RELOAD — context not restored, reloading page');
-        location.reload();
-        return;
-      }
-      try {
-        var gl = renderer.getContext();
-        if (gl && !gl.isContextLost()) {
-          renderer.render(scene, camera);
-          if (A.markDirty) A.markDirty();
-        }
-      } catch(e) {}
-    }
   });
 
   // Raycaster
