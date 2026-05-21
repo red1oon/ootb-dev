@@ -145,11 +145,14 @@ function setupScene(A) {
   A.pointerDownPos = { x: 0, y: 0 };
 
   // §S266: Recover from Chrome background-tab WebGL context kill (idle throttling)
+  // Chrome may permanently kill the context — reload is the only reliable recovery.
   canvas.addEventListener('webglcontextlost', function(e) {
     e.preventDefault();
-    console.log('§WEBGL_CONTEXT_LOST — will restore on focus');
+    console.log('§WEBGL_CONTEXT_LOST — waiting 2s for restore, else reload');
+    A._contextLostAt = Date.now();
   });
   canvas.addEventListener('webglcontextrestored', function() {
+    A._contextLostAt = 0;
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
     if (A.markDirty) A.markDirty();
@@ -157,6 +160,11 @@ function setupScene(A) {
   });
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
+      if (A._contextLostAt && Date.now() - A._contextLostAt > 2000) {
+        console.log('§WEBGL_RELOAD — context not restored, reloading page');
+        location.reload();
+        return;
+      }
       try {
         var gl = renderer.getContext();
         if (gl && !gl.isContextLost()) {
