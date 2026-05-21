@@ -656,7 +656,12 @@ function setupScene(A) {
     { seq: 'H',  name: 'Shadow',          icon: _ic('<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>') },
     { seq: 'B',  name: 'Background',      icon: _ic('<circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/>') },
     { seq: 'F11', name: 'Fullscreen',     icon: _ic('<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>') },
-    { seq: 'T',  name: 'Time Machine',    icon: _ic('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>') },
+    { seq: 'T',  name: 'Time Machine',    icon: _ic('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'), children: [
+      { name: 'Gantt timeline', icon: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h8"/><path d="M7 11h12"/><path d="M7 6h4"/>' },
+      { name: 'Play / Pause sequence', icon: '<polygon points="6 3 20 12 6 21 6 3"/>' },
+      { name: 'Phase slider', icon: '<path d="M2 12h20"/><circle cx="12" cy="12" r="2"/>' },
+      { name: 'Share ?tm=play link', icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>' }
+    ] },
     { seq: '',   name: 'Share',           icon: _ic('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>'), action: function() { if (A.quickShare) A.quickShare(); } },
     { seq: '',   name: 'Home',            icon: _ic('<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'), action: function() { location.href='../index.html'; } },
     { seq: 'F1', name: 'Help',            icon: _ic('<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>') }
