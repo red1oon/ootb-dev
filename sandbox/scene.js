@@ -144,6 +144,13 @@ function setupScene(A) {
   A.guidMap = {};
   A.pointerDownPos = { x: 0, y: 0 };
 
+  // §S266: Release WebGL context on tab close — prevents context exhaustion across window.open tabs
+  window.addEventListener('beforeunload', function() {
+    renderer.forceContextLoss();
+    renderer.dispose();
+    console.log('§WEBGL_DISPOSED on beforeunload');
+  });
+
   // Raycaster
   A.raycaster = new THREE.Raycaster();
   A.mouse = new THREE.Vector2();
