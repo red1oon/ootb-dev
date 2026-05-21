@@ -372,7 +372,7 @@ const BUILDINGS = {
   'Ifc2x3_AC11Institute': { db: 'AC11Institute_extracted.db' },
   'Duplex': { db: 'Duplex_extracted.db' },
   'LTU_AHouse': { db: 'LTU_AHouse_extracted.db' },
-  'Hospital': { db: 'Hospital_extracted.db' },
+  'Hospital': { db: 'hospital.db' },
   'Hospital_3': { db: 'Hospital_3_extracted.db' },
   'Terminal': { db: 'Terminal_extracted.db' },
   'Clinic': { db: 'Clinic_extracted.db' },
@@ -398,7 +398,7 @@ function saveViewed() {
 }
 
 // DB files served from production bucket — dev only overrides viewer/JS
-const _prodBase = 'https://objectstorage.ap-kulai-2.oraclecloud.com/n/ax3cp6tzwuy2/b/bim-ootb/o/';
+const _prodBase = 'https://objectstorage.ap-kulai-2.oraclecloud.com/n/ax3cp6tzwuy2/b/bim-ootb-live/o/';
 
 function openViewer(archName, repBuilding) {
   const bld = BUILDINGS[archName];
@@ -472,20 +472,6 @@ function updateCityProgress() {
 // ── Clear all cached data ──
 function clearAllCache() {
   indexedDB.deleteDatabase('bim_ootb_cache');
-  // §S260b: Also purge all SW Cache API caches (old versions accumulate 10GB+)
-  if (window.caches) {
-    caches.keys().then(function(keys) {
-      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-    }).then(function() {
-      console.log('§CLEAR_CACHE SW caches purged: ' + arguments.length);
-    }).catch(function() {});
-  }
-  // Unregister SW so fresh one installs on next load
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.getRegistrations().then(function(regs) {
-      regs.forEach(function(r) { r.unregister(); });
-    });
-  }
   localStorage.removeItem('bim_ootb_viewed');
   viewedBuildings.clear();
   updateCityProgress();
@@ -742,9 +728,7 @@ async function deleteProject(key) {
 // opts: { wizard: true } to launch classification wizard in viewer
 async function openProject(key, btnEl, opts) {
   if (btnEl) { btnEl.textContent = 'Opening...'; btnEl.disabled = true; }
-  console.log('§OPEN_PROJECT key=' + key);
   const record = await getProject(key);
-  console.log('§OPEN_PROJECT record=' + (record ? 'found' : 'null') + ' versions=' + (record ? record.versions.length : 0));
   if (!record || !record.versions.length) {
     alert('Building not found');
     if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; }
@@ -752,9 +736,7 @@ async function openProject(key, btnEl, opts) {
   }
   // Always open v0 (combined DB with all merged disciplines)
   const base = record.versions[0];
-  console.log('§OPEN_PROJECT v0_db_size=' + (base.db ? (base.db.byteLength || base.db.length || 0) : 'null'));
   const cacheDb = await openCacheDB();
-  console.log('§OPEN_PROJECT cacheDb=' + (cacheDb ? 'ok' : 'null'));
   if (!cacheDb) { if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; } return; }
 
   const dbUrl = 'import://' + key + '/v0';
@@ -793,10 +775,7 @@ async function openProject(key, btnEl, opts) {
   }
   const viewerUrl = (_base || '') + 'sandbox/index.html?db=' +
     encodeURIComponent(dbUrl) + '&lib=' + encodeURIComponent(libUrl) + diffParam + wizardParam;
-  console.log('§OPEN_PROJECT viewerUrl=' + viewerUrl.substring(0, 120) + '...');
   const win = window.open(viewerUrl, '_blank');
-  console.log('§OPEN_PROJECT window=' + (win ? 'opened' : 'BLOCKED'));
-  if (!win) { location.href = viewerUrl; }  // fallback if popup blocked
   trackTab(record.meta.name || key, '3D', win);
   if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; }
 }
@@ -1360,15 +1339,16 @@ function showExportFlyout(triggerEl, projectKey) {
 }
 
 async function exportProjectIFC(projectKey, flyout) {
-  var statusEl = flyout ? flyout.querySelector('.ef-status') : null;
-  var goBtn = flyout ? flyout.querySelector('[data-go]') : null;
-  if (goBtn) { goBtn.disabled = true; goBtn.textContent = 'Exporting...'; }
-  if (statusEl) statusEl.textContent = 'Reading database...';
+  var statusEl = flyout.querySelector('.ef-status');
+  var goBtn = flyout.querySelector('[data-go]');
+  goBtn.disabled = true;
+  goBtn.textContent = 'Exporting...';
+  statusEl.textContent = 'Reading database...';
 
   var record = await getProject(projectKey);
   if (!record || !record.versions.length) {
-    if (statusEl) statusEl.textContent = 'No data found';
-    if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Download'; }
+    statusEl.textContent = 'No data found';
+    goBtn.disabled = false; goBtn.textContent = 'Download';
     return;
   }
 
@@ -1388,7 +1368,7 @@ async function exportProjectIFC(projectKey, flyout) {
   var db = new SQL.Database(new Uint8Array(latest.db));
 
   // Extract all data from DB
-  if (statusEl) statusEl.textContent = 'Extracting elements...';
+  statusEl.textContent = 'Extracting elements...';
   var elements = [], transforms = [], geometries = [];
   var meta = {
     buildingName: projectKey.replace(/\.(ifc|obj|stl|dae|glb|gltf|3ds|fbx)$/i, ''),
@@ -1416,7 +1396,7 @@ async function exportProjectIFC(projectKey, flyout) {
         elements.push({ guid: row[0], ifcClass: row[1], name: row[2], storey: row[3], discipline: row[4], material: row[5] });
       }
     }
-  } catch(e) { if (statusEl) statusEl.textContent = 'Error reading elements: ' + e.message; return; }
+  } catch(e) { statusEl.textContent = 'Error reading elements: ' + e.message; return; }
 
   // Read transforms
   try {
@@ -1440,7 +1420,7 @@ async function exportProjectIFC(projectKey, flyout) {
     }
     // Load unique geometries in batches using exec (compatible with all sql.js versions)
     var usedHashes = Object.values(guidHashMap).filter(function(v,i,a) { return a.indexOf(v) === i; });
-    if (statusEl) statusEl.textContent = 'Loading ' + usedHashes.length + ' unique geometries...';
+    statusEl.textContent = 'Loading ' + usedHashes.length + ' unique geometries...';
     var BATCH = 200;
     for (var bi = 0; bi < usedHashes.length; bi += BATCH) {
       var chunk = usedHashes.slice(bi, bi + BATCH);
@@ -1452,25 +1432,25 @@ async function exportProjectIFC(projectKey, flyout) {
           geometries.push({ hash: row[0], vertices: row[1], faces: row[2] });
         }
       }
-      if (bi % 2000 === 0 && bi > 0 && statusEl) statusEl.textContent = 'Loading geometries... ' + Math.round(bi/usedHashes.length*100) + '%';
+      if (bi % 2000 === 0 && bi > 0) statusEl.textContent = 'Loading geometries... ' + Math.round(bi/usedHashes.length*100) + '%';
     }
   } catch(e) { console.error('Geo load error:', e); }
 
   db.close();
 
-  if (statusEl) statusEl.textContent = 'Building IFC (' + elements.length + ' elements)...';
+  statusEl.textContent = 'Building IFC (' + elements.length + ' elements)...';
 
   // Send to export worker
   var worker = new Worker('sandbox/ifc_export_worker.js?v=2');
   worker.onmessage = function(e) {
     var msg = e.data;
     if (msg.type === 'progress') {
-      if (statusEl) statusEl.textContent = msg.phase;
+      statusEl.textContent = msg.phase;
       return;
     }
     if (msg.type === 'error') {
-      if (statusEl) statusEl.textContent = 'Export failed: ' + msg.message;
-      if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Download'; }
+      statusEl.textContent = 'Export failed: ' + msg.message;
+      goBtn.disabled = false; goBtn.textContent = 'Download';
       worker.terminate();
       return;
     }
@@ -1481,16 +1461,16 @@ async function exportProjectIFC(projectKey, flyout) {
       a.download = meta.buildingName + '.ifc';
       a.click();
       URL.revokeObjectURL(a.href);
-      if (statusEl) statusEl.textContent = 'Downloaded ' + meta.buildingName + '.ifc (' + (msg.ifcData.byteLength / 1024).toFixed(0) + ' KB)';
-      if (goBtn) goBtn.textContent = 'Done';
+      statusEl.textContent = 'Downloaded ' + meta.buildingName + '.ifc (' + (msg.ifcData.byteLength / 1024).toFixed(0) + ' KB)';
+      goBtn.textContent = 'Done';
       console.log('[S229] §EXPORT_IFC key=' + projectKey + ' size=' + (msg.ifcData.byteLength / 1024).toFixed(0) + 'KB elements=' + elements.length);
       worker.terminate();
-      if (flyout) setTimeout(function() { flyout.remove(); }, 2000);
+      setTimeout(function() { flyout.remove(); }, 2000);
     }
   };
   worker.onerror = function(err) {
-    if (statusEl) statusEl.textContent = 'Worker error: ' + err.message;
-    if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Download'; }
+    statusEl.textContent = 'Worker error: ' + err.message;
+    goBtn.disabled = false; goBtn.textContent = 'Download';
     worker.terminate();
   };
 
