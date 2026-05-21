@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#ffffff">
-<title>BIM OOTB — Sysnova Information Systems Limited</title>
+<title>BIM OOTB — DEV</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -150,12 +150,16 @@
 </style>
 </head>
 <body>
+<div style="background:#ff8c00;color:#000;text-align:center;padding:8px;font-weight:bold;font-size:14px;font-family:Segoe UI,sans-serif;letter-spacing:1px">DEVELOPMENT SITE FOR BACK UP TESTING</div>
 
 <div class="header">
   <a href="https://www.sysnova.co.uk/" target="_blank" style="display:block;margin:0 auto 16px;text-decoration:none"><img src="Sysnova.png" alt="Sysnova Information Systems Limited" style="display:block;margin:0 auto;height:80px;width:auto"></a>
-  <h1 style="color:#0277bd;margin-bottom:0"><span style="font-size:64px;display:block;margin-bottom:-8px;line-height:0.8;font-family:'Arial Black',Impact,sans-serif;letter-spacing:16px;margin-left:16px">BIM</span><span data-trl="landing_ootb" style="font-size:16px;font-weight:400;font-family:'Arial Black',Impact,sans-serif;letter-spacing:6px;margin-left:6px;color:#0277bdaa;text-transform:lowercase">outofthebox</span></h1>
+  <div style="display:flex;justify-content:center;align-items:baseline;gap:32px;flex-wrap:wrap">
+    <h1 style="color:#0277bd;margin-bottom:0"><span style="font-size:64px;display:block;margin-bottom:-8px;line-height:0.8;font-family:'Arial Black',Impact,sans-serif;letter-spacing:16px;margin-left:16px">BIM</span><span data-trl="landing_ootb" style="font-size:16px;font-weight:400;font-family:'Arial Black',Impact,sans-serif;letter-spacing:6px;margin-left:6px;color:#0277bdaa;text-transform:lowercase">outofthebox</span></h1>
+    <a href="sandbox/erp.html" target="_blank" style="text-decoration:none"><h1 style="color:#e8a735;margin-bottom:0"><span style="font-size:64px;display:block;margin-bottom:-8px;line-height:0.8;font-family:'Arial Black',Impact,sans-serif;letter-spacing:16px;margin-left:16px">ERP</span><span style="font-size:16px;font-weight:400;font-family:'Arial Black',Impact,sans-serif;letter-spacing:6px;margin-left:6px;color:#e8a735aa;text-transform:lowercase">outofthebox</span></h1></a>
+  </div>
   <div style="display:flex;justify-content:center;align-items:center;gap:14px;margin-top:10px">
-    <a href="https://youtu.be/iNn7Cl8wC8o" target="_blank" style="display:inline-flex;align-items:center;gap:6px;color:#0277bd;font-size:13px;text-decoration:none;padding:4px 8px"><img src="sandbox/YT.png" alt="YouTube" style="height:20px;vertical-align:middle"> <span data-trl="landing_watch_demo">Watch Demo</span></a>
+    <a href="https://youtu.be/bSyuLQ_c4rw" target="_blank" style="display:inline-flex;align-items:center;gap:6px;color:#0277bd;font-size:13px;text-decoration:none;padding:4px 8px"><img src="sandbox/YT.png" alt="YouTube" style="height:20px;vertical-align:middle"> <span data-trl="landing_watch_demo">Watch Demo</span></a>
     <a href="javascript:void(0)" onclick="document.getElementById('about-dialog').classList.toggle('active')" style="display:inline-flex;align-items:center;gap:5px;color:#444;font-size:13px;text-decoration:none;padding:4px 8px">&#10067; <span data-trl="landing_about">About</span></a>
     <a href="javascript:void(0)" id="header-flag-btn" onclick="if(window._TRL_LOADER)_TRL_LOADER.openFlagPicker()" style="display:inline-flex;align-items:center;gap:4px;color:#444;font-size:16px;text-decoration:none;padding:4px 8px;cursor:pointer" title="Language">&#127760;</a>
     <a href="javascript:void(0)" onclick="if(window.APP&&APP.reportBug)APP.reportBug();else window.open('https://github.com/red1oon/BIMCompiler/issues/new?labels=bug','_blank')" style="display:inline-flex;align-items:center;gap:4px;color:#444;font-size:13px;text-decoration:none;padding:4px 8px;cursor:pointer" title="Send to GitHub Issues Tracker"><img src="submit.png" alt="Submit" style="height:18px;vertical-align:middle"> <span style="font-size:10px">Send to GitHub Issues Tracker</span></a>
@@ -201,7 +205,7 @@
       <div style="display:none;margin-top:8px;height:4px;background:#222;border-radius:2px;overflow:hidden;max-width:400px;margin-left:auto;margin-right:auto">
         <div id="import-progress-bar" style="height:100%;width:0%;background:#0277bd;border-radius:2px;transition:width 0.3s"></div>
       </div>
-      <input type="file" id="import-file-input" accept=".ifc,.dae,.obj,.glb,.gltf,.3ds,.fbx,.stl" style="display:none">
+      <input type="file" id="import-file-input" accept=".ifc,.dae,.obj,.glb,.gltf,.3ds,.fbx,.stl" multiple style="display:none">
 
       <!-- Footer — quiet -->
       <div style="margin-top:16px;color:#444;font-size:10px;letter-spacing:0.3px">
@@ -274,9 +278,9 @@
 </div>
 
 <div class="footer">
-  <a href="https://red1oon.github.io/BIMCompiler/BIM_Designer_Browser/" target="_blank">Documentation</a>
+  <a href="https://red1oon.github.io/BIMCompiler/StrategicIndustryPositioning/" target="_blank">Documentation</a>
   &nbsp;&middot;&nbsp;
-  <a href="https://red1oon.github.io/BIMCompiler/MANIFESTO/" target="_blank">Manifesto</a>
+  <a href="https://github.com/red1oon/BIMCompiler" target="_blank">GitHub</a>
   &nbsp;&middot;&nbsp;
   BIM OOTB &mdash; FOSS &middot; No account &middot; No vendor lock-in
   &nbsp;&middot;&nbsp;
@@ -285,9 +289,6 @@
   <a href="javascript:clearAllCache()" style="color:#ff8a65">Clear Cache</a>
   <div style="margin-top:20px;color:#555;font-size:11px">
     <span data-trl="landing_created_by">Created by</span> <a href="mailto:red1org@gmail.com" style="color:#0277bd;text-decoration:none">Redhuan D. OON</a> (red1) — October 2025
-  </div>
-  <div style="margin-top:16px">
-    <a href="sandbox/erp.html" style="color:#e8a735;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:2px">ERP OOTB</a>
   </div>
   <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.1);font-size:13px;color:#333;letter-spacing:0.5px">
     <a href="https://www.sysnova.co.uk/" target="_blank" style="text-decoration:none"><strong style="color:#0277bd;font-size:14px;display:block;margin-bottom:3px">Sysnova Information Systems Limited</strong></a>
@@ -300,7 +301,7 @@
   <div class="tab-list" id="tab-list"></div>
 </div>
 
-<script src="sandbox/import_db_builder.js"></script>
+<script src="sandbox/import_db_builder.js?v=3"></script>
 <!-- wizard.js now loads in viewer via ?wizard=1 param (S230) -->
 <script>
 // ── Config ──
@@ -471,6 +472,20 @@ function updateCityProgress() {
 // ── Clear all cached data ──
 function clearAllCache() {
   indexedDB.deleteDatabase('bim_ootb_cache');
+  // §S260b: Also purge all SW Cache API caches (old versions accumulate 10GB+)
+  if (window.caches) {
+    caches.keys().then(function(keys) {
+      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+    }).then(function() {
+      console.log('§CLEAR_CACHE SW caches purged: ' + arguments.length);
+    }).catch(function() {});
+  }
+  // Unregister SW so fresh one installs on next load
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(r) { r.unregister(); });
+    });
+  }
   localStorage.removeItem('bim_ootb_viewed');
   viewedBuildings.clear();
   updateCityProgress();
@@ -727,7 +742,9 @@ async function deleteProject(key) {
 // opts: { wizard: true } to launch classification wizard in viewer
 async function openProject(key, btnEl, opts) {
   if (btnEl) { btnEl.textContent = 'Opening...'; btnEl.disabled = true; }
+  console.log('§OPEN_PROJECT key=' + key);
   const record = await getProject(key);
+  console.log('§OPEN_PROJECT record=' + (record ? 'found' : 'null') + ' versions=' + (record ? record.versions.length : 0));
   if (!record || !record.versions.length) {
     alert('Building not found');
     if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; }
@@ -735,7 +752,9 @@ async function openProject(key, btnEl, opts) {
   }
   // Always open v0 (combined DB with all merged disciplines)
   const base = record.versions[0];
+  console.log('§OPEN_PROJECT v0_db_size=' + (base.db ? (base.db.byteLength || base.db.length || 0) : 'null'));
   const cacheDb = await openCacheDB();
+  console.log('§OPEN_PROJECT cacheDb=' + (cacheDb ? 'ok' : 'null'));
   if (!cacheDb) { if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; } return; }
 
   const dbUrl = 'import://' + key + '/v0';
@@ -774,7 +793,10 @@ async function openProject(key, btnEl, opts) {
   }
   const viewerUrl = (_base || '') + 'sandbox/index.html?db=' +
     encodeURIComponent(dbUrl) + '&lib=' + encodeURIComponent(libUrl) + diffParam + wizardParam;
+  console.log('§OPEN_PROJECT viewerUrl=' + viewerUrl.substring(0, 120) + '...');
   const win = window.open(viewerUrl, '_blank');
+  console.log('§OPEN_PROJECT window=' + (win ? 'opened' : 'BLOCKED'));
+  if (!win) { location.href = viewerUrl; }  // fallback if popup blocked
   trackTab(record.meta.name || key, '3D', win);
   if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; }
 }
@@ -995,7 +1017,7 @@ async function handleImportFile(file) {
 
   const arrayBuffer = await file.arrayBuffer();
   // S228: Route to IFC or mesh worker based on format
-  var workerFile = (fmt.route === 'ifc') ? 'sandbox/import_worker.js?v=7' : 'sandbox/mesh_import_worker.js?v=2';
+  var workerFile = (fmt.route === 'ifc') ? 'sandbox/import_worker.js?v=8' : 'sandbox/mesh_import_worker.js?v=2';
   var workerMsg = (fmt.route === 'ifc') ? { arrayBuffer, filename: file.name } : { arrayBuffer, filename: file.name, ext: fmt.ext };
   const worker = new Worker(workerFile);
 
@@ -1070,7 +1092,7 @@ async function handleImportFile(file) {
                 { name: 'elements_meta', cols: 'guid, ifc_class, element_name, storey, discipline, material_name, material_rgba, building' },
                 { name: 'element_transforms', cols: 'guid, center_x, center_y, center_z, rotation_x, rotation_y, rotation_z, bbox_x, bbox_y, bbox_z' },
                 { name: 'element_instances', cols: 'guid, geometry_hash' },
-                { name: 'component_geometries', cols: 'geometry_hash, vertices, faces, building' },
+                { name: 'component_geometries', cols: 'geometry_hash, vertices, faces, normals, building' },
               ];
               for (var ti = 0; ti < _mergeTables.length; ti++) {
                 var tbl = _mergeTables[ti];
@@ -1150,16 +1172,146 @@ async function handleImportFile(file) {
   worker.postMessage(workerMsg, [arrayBuffer]);
 }
 
+// ── Multi-IFC one-shot merge: select N discipline files → one building ──
+async function handleImportMultiIFC(files) {
+  const status = document.getElementById('import-status');
+  const progressBar = document.getElementById('import-progress-bar');
+  if (progressBar) { progressBar.style.width = '0%'; progressBar.parentElement.style.display = 'block'; progressBar.style.background = '#0277bd'; }
+
+  // Common prefix for building name: LTU_AHouse_ARC + LTU_AHouse_STR → LTU_AHouse
+  var stems = [];
+  for (var i = 0; i < files.length; i++) stems.push(files[i].name.replace(/\.(ifc|IFC)$/, ''));
+  var prefix = stems[0];
+  for (var i = 1; i < stems.length; i++) {
+    while (stems[i].indexOf(prefix) !== 0) { prefix = prefix.substring(0, prefix.length - 1); if (!prefix) break; }
+  }
+  var buildingName = prefix.replace(/[_\-]+$/, '') || stems[0];
+
+  console.log('[S224] §MULTI_IMPORT_START files=' + files.length + ' building=' + buildingName);
+  if (status) status.textContent = 'Merging ' + files.length + ' IFC files → ' + buildingName + '...';
+
+  var allElements = [], allGeometries = [], allTransforms = [];
+  var allDiscs = {}, allStoreys = [];
+
+  for (var fi = 0; fi < files.length; fi++) {
+    var file = files[fi];
+    var fileLabel = (fi + 1) + '/' + files.length + ': ' + file.name;
+    if (status) status.textContent = 'Parsing ' + fileLabel;
+
+    try {
+      var result = await new Promise(function(resolve, reject) {
+        file.arrayBuffer().then(function(arrayBuffer) {
+          var worker = new Worker('sandbox/import_worker.js?v=8');
+          worker.onmessage = function(e) {
+            var msg = e.data;
+            if (msg.type === 'progress') {
+              var filePct = (fi / files.length + msg.pct / 100 / files.length) * 90;
+              if (progressBar) progressBar.style.width = filePct.toFixed(1) + '%';
+              if (status) status.textContent = fileLabel + ' — ' + msg.phase;
+              return;
+            }
+            if (msg.type === 'error') { worker.terminate(); reject(new Error(msg.message)); return; }
+            if (msg.type === 'done') {
+              // Apply discipline from filename
+              var fnDisc = _discFromFilename(file.name);
+              if (fnDisc && msg.elements) {
+                msg.meta.disciplines = {};
+                for (var ei = 0; ei < msg.elements.length; ei++) msg.elements[ei].discipline = fnDisc;
+                msg.meta.disciplines[fnDisc] = msg.elements.length;
+              }
+              worker.terminate();
+              resolve(msg);
+            }
+          };
+          worker.onerror = function(err) { worker.terminate(); reject(err); };
+          worker.postMessage({ arrayBuffer: arrayBuffer, filename: file.name }, [arrayBuffer]);
+        });
+      });
+
+      allElements = allElements.concat(result.elements);
+      allGeometries = allGeometries.concat(result.geometries);
+      allTransforms = allTransforms.concat(result.transforms);
+      for (var d in (result.meta.disciplines || {})) { allDiscs[d] = (allDiscs[d] || 0) + result.meta.disciplines[d]; }
+      (result.meta.storeys || []).forEach(function(s) { if (allStoreys.indexOf(s) < 0) allStoreys.push(s); });
+      console.log('[S224] §MULTI_FILE_DONE ' + fileLabel + ' elements=' + result.meta.elementCount);
+
+    } catch (err) {
+      console.log('[S224] §MULTI_FILE_ERROR ' + fileLabel + ' err=' + err.message);
+      if (status) status.textContent = 'Failed: ' + fileLabel + ' — ' + err.message;
+      if (progressBar) progressBar.style.background = '#cc4444';
+      return;
+    }
+  }
+
+  // Build merged DB
+  if (status) status.textContent = 'Building merged database (' + allElements.length + ' elements)...';
+  if (progressBar) progressBar.style.width = '92%';
+
+  try {
+    if (typeof initSqlJs === 'undefined') {
+      await new Promise(function(resolve) {
+        var s = document.createElement('script'); s.src = 'https://sql.js.org/dist/sql-wasm.js';
+        s.onload = resolve; document.head.appendChild(s);
+      });
+    }
+    var SQL = await initSqlJs({ locateFile: function(f) { return 'https://sql.js.org/dist/' + f; } });
+    var mergedData = {
+      meta: { name: buildingName, filename: buildingName, elementCount: allElements.length, geomCount: allGeometries.length, disciplines: allDiscs, storeys: allStoreys.sort() },
+      elements: allElements, geometries: allGeometries, transforms: allTransforms
+    };
+    // §S260b: Yield to UI before heavy DB build (16K+ geometries = seconds of blocking)
+    await new Promise(function(r) { setTimeout(r, 50); });
+    var dbs = buildImportDBs(SQL, mergedData);
+
+    var projectKey = buildingName + '.ifc';
+    var newRecord = {
+      meta: mergedData.meta,
+      versions: [{ key: projectKey, importDate: new Date().toISOString(), db: dbs.extractedDb }],
+      latestVersion: 0
+    };
+    if (dbs.metaDb) newRecord.metaDb = dbs.metaDb;
+    if (dbs.geoDb) newRecord.geoDb = dbs.geoDb;
+    await saveProject(projectKey, newRecord);
+
+    console.log('[S224] §MULTI_IMPORT_DONE building=' + buildingName + ' elements=' + allElements.length +
+      ' files=' + files.length + ' discs=' + Object.keys(allDiscs).join(','));
+    if (status) status.textContent = 'Merged ' + files.length + ' files → ' + allElements.length + ' elements';
+    if (progressBar) { progressBar.style.width = '100%'; progressBar.style.background = '#44cc44'; }
+    setTimeout(function() { status.textContent = ''; progressBar.style.width = '0%'; progressBar.style.background = '#0277bd'; progressBar.parentElement.style.display = 'none'; }, 3000);
+    renderImportCards();
+  } catch (dbErr) {
+    console.log('[S224] §MULTI_DB_ERROR ' + dbErr.message);
+    if (status) status.textContent = 'DB merge failed: ' + dbErr.message;
+    if (progressBar) progressBar.style.background = '#cc4444';
+  }
+}
+
 // Wire drop zone
 const dropZone = document.getElementById('import-zone');
 const fileInput = document.getElementById('import-file-input');
 if (dropZone) {
   dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#0277bd'; });
   dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'rgba(79,195,247,0.3)'; });
-  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.style.borderColor = 'rgba(79,195,247,0.3)'; handleImportFile(e.dataTransfer.files[0]); });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.style.borderColor = 'rgba(79,195,247,0.3)';
+    var files = e.dataTransfer.files;
+    var ifcFiles = [];
+    for (var i = 0; i < files.length; i++) { if (detectLandingFormat(files[i].name).route === 'ifc') ifcFiles.push(files[i]); }
+    if (ifcFiles.length > 1) { handleImportMultiIFC(ifcFiles); }
+    else { handleImportFile(files[0]); }
+  });
   dropZone.addEventListener('click', () => { if (fileInput) fileInput.click(); });
 }
-if (fileInput) fileInput.addEventListener('change', () => { handleImportFile(fileInput.files[0]); fileInput.value = ''; });
+if (fileInput) {
+  fileInput.addEventListener('change', () => {
+    var files = fileInput.files;
+    var ifcFiles = [];
+    for (var i = 0; i < files.length; i++) { if (detectLandingFormat(files[i].name).route === 'ifc') ifcFiles.push(files[i]); }
+    if (ifcFiles.length > 1) { handleImportMultiIFC(ifcFiles); }
+    else if (files.length) { handleImportFile(files[0]); }
+    fileInput.value = '';
+  });
+}
 
 // Render existing imports
 renderImportCards();
@@ -1208,16 +1360,15 @@ function showExportFlyout(triggerEl, projectKey) {
 }
 
 async function exportProjectIFC(projectKey, flyout) {
-  var statusEl = flyout.querySelector('.ef-status');
-  var goBtn = flyout.querySelector('[data-go]');
-  goBtn.disabled = true;
-  goBtn.textContent = 'Exporting...';
-  statusEl.textContent = 'Reading database...';
+  var statusEl = flyout ? flyout.querySelector('.ef-status') : null;
+  var goBtn = flyout ? flyout.querySelector('[data-go]') : null;
+  if (goBtn) { goBtn.disabled = true; goBtn.textContent = 'Exporting...'; }
+  if (statusEl) statusEl.textContent = 'Reading database...';
 
   var record = await getProject(projectKey);
   if (!record || !record.versions.length) {
-    statusEl.textContent = 'No data found';
-    goBtn.disabled = false; goBtn.textContent = 'Download';
+    if (statusEl) statusEl.textContent = 'No data found';
+    if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Download'; }
     return;
   }
 
@@ -1237,7 +1388,7 @@ async function exportProjectIFC(projectKey, flyout) {
   var db = new SQL.Database(new Uint8Array(latest.db));
 
   // Extract all data from DB
-  statusEl.textContent = 'Extracting elements...';
+  if (statusEl) statusEl.textContent = 'Extracting elements...';
   var elements = [], transforms = [], geometries = [];
   var meta = {
     buildingName: projectKey.replace(/\.(ifc|obj|stl|dae|glb|gltf|3ds|fbx)$/i, ''),
@@ -1265,7 +1416,7 @@ async function exportProjectIFC(projectKey, flyout) {
         elements.push({ guid: row[0], ifcClass: row[1], name: row[2], storey: row[3], discipline: row[4], material: row[5] });
       }
     }
-  } catch(e) { statusEl.textContent = 'Error reading elements: ' + e.message; return; }
+  } catch(e) { if (statusEl) statusEl.textContent = 'Error reading elements: ' + e.message; return; }
 
   // Read transforms
   try {
@@ -1289,7 +1440,7 @@ async function exportProjectIFC(projectKey, flyout) {
     }
     // Load unique geometries in batches using exec (compatible with all sql.js versions)
     var usedHashes = Object.values(guidHashMap).filter(function(v,i,a) { return a.indexOf(v) === i; });
-    statusEl.textContent = 'Loading ' + usedHashes.length + ' unique geometries...';
+    if (statusEl) statusEl.textContent = 'Loading ' + usedHashes.length + ' unique geometries...';
     var BATCH = 200;
     for (var bi = 0; bi < usedHashes.length; bi += BATCH) {
       var chunk = usedHashes.slice(bi, bi + BATCH);
@@ -1301,25 +1452,25 @@ async function exportProjectIFC(projectKey, flyout) {
           geometries.push({ hash: row[0], vertices: row[1], faces: row[2] });
         }
       }
-      if (bi % 2000 === 0 && bi > 0) statusEl.textContent = 'Loading geometries... ' + Math.round(bi/usedHashes.length*100) + '%';
+      if (bi % 2000 === 0 && bi > 0 && statusEl) statusEl.textContent = 'Loading geometries... ' + Math.round(bi/usedHashes.length*100) + '%';
     }
   } catch(e) { console.error('Geo load error:', e); }
 
   db.close();
 
-  statusEl.textContent = 'Building IFC (' + elements.length + ' elements)...';
+  if (statusEl) statusEl.textContent = 'Building IFC (' + elements.length + ' elements)...';
 
   // Send to export worker
   var worker = new Worker('sandbox/ifc_export_worker.js?v=2');
   worker.onmessage = function(e) {
     var msg = e.data;
     if (msg.type === 'progress') {
-      statusEl.textContent = msg.phase;
+      if (statusEl) statusEl.textContent = msg.phase;
       return;
     }
     if (msg.type === 'error') {
-      statusEl.textContent = 'Export failed: ' + msg.message;
-      goBtn.disabled = false; goBtn.textContent = 'Download';
+      if (statusEl) statusEl.textContent = 'Export failed: ' + msg.message;
+      if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Download'; }
       worker.terminate();
       return;
     }
@@ -1330,16 +1481,16 @@ async function exportProjectIFC(projectKey, flyout) {
       a.download = meta.buildingName + '.ifc';
       a.click();
       URL.revokeObjectURL(a.href);
-      statusEl.textContent = 'Downloaded ' + meta.buildingName + '.ifc (' + (msg.ifcData.byteLength / 1024).toFixed(0) + ' KB)';
-      goBtn.textContent = 'Done';
+      if (statusEl) statusEl.textContent = 'Downloaded ' + meta.buildingName + '.ifc (' + (msg.ifcData.byteLength / 1024).toFixed(0) + ' KB)';
+      if (goBtn) goBtn.textContent = 'Done';
       console.log('[S229] §EXPORT_IFC key=' + projectKey + ' size=' + (msg.ifcData.byteLength / 1024).toFixed(0) + 'KB elements=' + elements.length);
       worker.terminate();
-      setTimeout(function() { flyout.remove(); }, 2000);
+      if (flyout) setTimeout(function() { flyout.remove(); }, 2000);
     }
   };
   worker.onerror = function(err) {
-    statusEl.textContent = 'Worker error: ' + err.message;
-    goBtn.disabled = false; goBtn.textContent = 'Download';
+    if (statusEl) statusEl.textContent = 'Worker error: ' + err.message;
+    if (goBtn) { goBtn.disabled = false; goBtn.textContent = 'Download'; }
     worker.terminate();
   };
 
