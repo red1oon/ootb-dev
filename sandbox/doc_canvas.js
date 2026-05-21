@@ -22,7 +22,9 @@ var _phaseIndex = -1;    // -1 = step zero (envelope only)
 var _phases = [];        // Gantt phases [{name, disc, guids}]
 var _hiddenMeshes = [];  // stash of meshes hidden when Doc activates
 var _batchedState = [];  // [{mesh, meta}] — BatchedMesh objects with per-slot visibility
-var _guidToSlot = {};    // guid → {mesh, slotId} — fast lookup for materialize
+var _instancedState = []; // [{mesh, meta}] — InstancedMesh objects with per-instance visibility
+var _guidToSlot = {};    // guid → {mesh, slotId} — fast lookup for BatchedMesh materialize
+var _guidToInstance = {}; // guid → {mesh, index, origMatrix} — fast lookup for InstancedMesh
 var _activeDisc = 'ARC'; // active discipline for Next — default ARC
 var _shownCount = 0;     // running count of elements revealed by Next
 
@@ -104,7 +106,11 @@ function activate(A) {
   // §S260 BatchedMesh: hide per-slot, not per-mesh, so nextPhase can reveal individually
   _hiddenMeshes = [];
   _batchedState = [];
+  _instancedState = [];
   _guidToSlot = {};
+  _guidToInstance = {};
+  var _zeroMatrix = new THREE.Matrix4();
+  if (_zeroMatrix.makeScale) _zeroMatrix.makeScale(0, 0, 0);
   A.scene.traverse(function(obj) {
     if (obj === _group || obj.parent === _group ||
         obj.parent === _envGroup || obj.parent === _gridGroup ||
@@ -117,6 +123,22 @@ function activate(A) {
         _guidToSlot[meta[si].guid] = { mesh: obj, slotId: meta[si].slotId };
       }
       _batchedState.push({ mesh: obj, meta: meta });
+      return;
+    }
+    // InstancedMesh — hide all instances via zero-scale, build guid→instance lookup
+    if (obj.isInstancedMesh && A._instanceMeta && A._instanceMeta[obj.id]) {
+      var imeta = A._instanceMeta[obj.id];
+      for (var ii = 0; ii < imeta.length; ii++) {
+        // Save original matrix before zeroing
+        if (!imeta[ii]._origMatrix) {
+          imeta[ii]._origMatrix = new THREE.Matrix4();
+          obj.getMatrixAt(ii, imeta[ii]._origMatrix);
+        }
+        obj.setMatrixAt(ii, _zeroMatrix);
+        _guidToInstance[imeta[ii].guid] = { mesh: obj, index: ii, origMatrix: imeta[ii]._origMatrix };
+      }
+      obj.instanceMatrix.needsUpdate = true;
+      _instancedState.push({ mesh: obj, meta: imeta });
       return;
     }
     if (obj.isMesh && obj.visible) {
@@ -145,8 +167,8 @@ function activate(A) {
 
   console.log('§DOC_CANVAS activate building=' + A._bom.building +
     ' hidden=' + _hiddenMeshes.length +
-    ' batchedMeshes=' + _batchedState.length +
-    ' batchedSlots=' + Object.keys(_guidToSlot).length +
+    ' batched=' + Object.keys(_guidToSlot).length +
+    ' instanced=' + Object.keys(_guidToInstance).length +
     ' envelope=' + A._bom.envelope.width + 'x' + A._bom.envelope.depth + 'x' + A._bom.envelope.height + 'm');
 }
 
@@ -172,6 +194,20 @@ function deactivate(A) {
   }
   _batchedState = [];
   _guidToSlot = {};
+
+  // Restore InstancedMesh instances to original matrices
+  for (var ii = 0; ii < _instancedState.length; ii++) {
+    var is_ = _instancedState[ii];
+    for (var ij = 0; ij < is_.meta.length; ij++) {
+      if (is_.meta[ij]._origMatrix) {
+        is_.mesh.setMatrixAt(ij, is_.meta[ij]._origMatrix);
+      }
+    }
+    is_.mesh.instanceMatrix.needsUpdate = true;
+    is_.mesh.visible = true;
+  }
+  _instancedState = [];
+  _guidToInstance = {};
 
   // Hide Doc HUD sections
   _hideHud();
@@ -447,10 +483,16 @@ function _addGridPosition(axis, position, label) {
   var arr = axis === 'X' ? _xPositions : _zPositions;
   var labels = axis === 'X' ? _xLabels : _zLabels;
 
-  // Skip if too close to an existing line (within 0.3m)
+  // Skip if too close to an existing line.
+  // 2m dedup for auto-grid (walls/columns within 2m merge to same grid line).
+  // 0.3m dedup for Rosetta manual placement (user controls fine positioning).
+  var minGap = _calibrationMode ? 0.3 : 2.0;
   for (var i = 0; i < arr.length; i++) {
-    if (Math.abs(arr[i] - position) < 0.3) return false;
+    if (Math.abs(arr[i] - position) < minGap) return false;
   }
+
+  // Cap at 30 lines per axis to prevent visual clutter
+  if (arr.length >= 30) return false;
 
   // Insert in sorted order
   var idx = 0;
@@ -620,6 +662,15 @@ function _materializePhase(A, phase) {
     var slot = _guidToSlot[phase.guids[k]];
     if (slot) {
       slot.mesh.setVisibleAt(slot.slotId, true);
+      shown++;
+      continue;
+    }
+    // InstancedMesh path — restore original matrix
+    var inst = _guidToInstance[phase.guids[k]];
+    if (inst) {
+      inst.mesh.setMatrixAt(inst.index, inst.origMatrix);
+      inst.mesh.instanceMatrix.needsUpdate = true;
+      inst.mesh.visible = true;
       shown++;
     }
   }
