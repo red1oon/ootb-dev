@@ -144,30 +144,26 @@ function setupScene(A) {
   A.guidMap = {};
   A.pointerDownPos = { x: 0, y: 0 };
 
-  // §S266: Release WebGL context on tab close — prevents context exhaustion across window.open tabs
-  window.addEventListener('beforeunload', function() {
-    renderer.forceContextLoss();
-    renderer.dispose();
-    console.log('§WEBGL_DISPOSED on beforeunload');
-  });
-
-  // §S266: Recover from Chrome background-tab context kill
+  // §S266: Recover from Chrome background-tab WebGL context kill (idle throttling)
   canvas.addEventListener('webglcontextlost', function(e) {
-    e.preventDefault();  // tell browser we want to restore
-    console.log('§WEBGL_CONTEXT_LOST — Chrome background throttle, will restore on focus');
+    e.preventDefault();
+    console.log('§WEBGL_CONTEXT_LOST — will restore on focus');
   });
   canvas.addEventListener('webglcontextrestored', function() {
-    console.log('§WEBGL_CONTEXT_RESTORED — re-rendering');
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
     if (A.markDirty) A.markDirty();
+    console.log('§WEBGL_CONTEXT_RESTORED');
   });
-  // Force re-render when tab regains focus after being backgrounded
   document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && renderer.getContext().isContextLost && !renderer.getContext().isContextLost()) {
-      renderer.render(scene, camera);
-      if (A.markDirty) A.markDirty();
-      console.log('§WEBGL_REFOCUS re-rendered on tab focus');
+    if (!document.hidden) {
+      try {
+        var gl = renderer.getContext();
+        if (gl && !gl.isContextLost()) {
+          renderer.render(scene, camera);
+          if (A.markDirty) A.markDirty();
+        }
+      } catch(e) {}
     }
   });
 
