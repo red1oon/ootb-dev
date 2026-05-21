@@ -811,6 +811,19 @@ function setupPanels(A) {
       pill.appendChild(btnSave);
       _docMode = true;
       console.log('§DOC_PILL mode=doc icons=6');
+      // S266: extract BOM on Doc pill entry
+      if (window.BOMExtract && A.db) {
+        var bld = A.activeBuilding || 'unknown';
+        BOMExtract.loadCached(bld, function(cached) {
+          if (cached) {
+            A._bom = cached;
+            console.log('§DOC_BOM cached building=' + bld + ' storeys=' + cached.storeys.length);
+          } else {
+            A._bom = BOMExtract.extract(A);
+            if (A._bom) BOMExtract.applySTDMEP(A._bom);
+          }
+        });
+      }
     }
   };
 
