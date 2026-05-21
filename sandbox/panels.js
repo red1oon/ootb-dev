@@ -120,7 +120,8 @@ function setupPanels(A) {
       // Slider
       var inp = document.createElement('input');
       inp.type = 'range'; inp.id = sliderId;
-      inp.min = min; inp.max = max; inp.value = val; inp.step = step;
+      inp.min = String(min); inp.max = String(max); inp.step = String(step);
+      inp.value = String(val);
       row.appendChild(inp);
       // Value label (hidden until drag)
       var valSpan = document.createElement('span');
