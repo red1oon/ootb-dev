@@ -692,6 +692,13 @@ function setupScene(A) {
           (entry.icon || '') + entry.name + '</span>' +
           (entry.seq ? '<kbd style="background:#333;color:#4fc3f7;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px;border:1px solid #555">' + entry.seq + '</kbd>' : '');
         row.addEventListener('click', function() {
+          // S265 P10: entries with children toggle sub-list instead of running action
+          if (entry._childDiv) {
+            var open = entry._childDiv.style.display !== 'none';
+            entry._childDiv.style.display = open ? 'none' : 'block';
+            if (entry._bar) entry._bar.style.background = open ? '#f44336' : '#4fc3f7';
+            return;
+          }
           pal.remove();
           if (entry.action) { entry.action(); }
           else { var seq = entry.seq.toLowerCase(); if (_shortcuts[seq]) _shortcuts[seq](); }
@@ -712,17 +719,13 @@ function setupScene(A) {
             ch.innerHTML = _ic(c.icon) + '<span>' + c.name + '</span>';
             childDiv.appendChild(ch);
           });
-          // Red bar toggle — sits left of icon, same alignment as other rows
-          var toggle = document.createElement('span');
-          toggle.style.cssText = 'width:3px;height:16px;background:#f44336;border-radius:1px;flex-shrink:0;cursor:pointer;margin-right:-3px';
-          toggle.addEventListener('click', function(e) {
-            e.stopPropagation();
-            var open = childDiv.style.display !== 'none';
-            childDiv.style.display = open ? 'none' : 'block';
-            toggle.style.background = open ? '#f44336' : '#4fc3f7';
-          });
-          var rowSpan = row.querySelector('span');
-          rowSpan.insertBefore(toggle, rowSpan.firstChild);
+          // Red bar in left margin — whole row toggles children
+          row.style.position = 'relative';
+          var bar = document.createElement('span');
+          bar.style.cssText = 'position:absolute;left:4px;top:50%;transform:translateY(-50%);width:3px;height:16px;background:#f44336;border-radius:1px';
+          row.appendChild(bar);
+          entry._childDiv = childDiv;
+          entry._bar = bar;
           listEl.appendChild(childDiv);
         }
       });
