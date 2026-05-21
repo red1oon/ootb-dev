@@ -21,7 +21,10 @@ var _gridOn = false;
 var _phaseIndex = -1;    // -1 = step zero (envelope only)
 var _phases = [];        // Gantt phases [{name, disc, guids}]
 var _hiddenMeshes = [];  // stash of meshes hidden when Doc activates
+var _batchedState = [];  // [{mesh, meta}] — BatchedMesh objects with per-slot visibility
+var _guidToSlot = {};    // guid → {mesh, slotId} — fast lookup for materialize
 var _activeDisc = 'ARC'; // active discipline for Next — default ARC
+var _shownCount = 0;     // running count of elements revealed by Next
 
 // ── IFC class → grid strategy table (data, not code) ────────────────────────
 // Each entry: { axes: 'XZ'|'long'|'none', desc: string }
@@ -98,11 +101,24 @@ function activate(A) {
   _group.add(_phaseGroup);
 
   // Hide all existing building meshes
+  // §S260 BatchedMesh: hide per-slot, not per-mesh, so nextPhase can reveal individually
   _hiddenMeshes = [];
+  _batchedState = [];
+  _guidToSlot = {};
   A.scene.traverse(function(obj) {
     if (obj === _group || obj.parent === _group ||
         obj.parent === _envGroup || obj.parent === _gridGroup ||
         obj.parent === _phaseGroup) return;
+    // §S260: BatchedMesh — hide all slots, build guid→slot lookup
+    if (obj.isBatchedMesh && A._batchMeta && A._batchMeta[obj.id]) {
+      var meta = A._batchMeta[obj.id];
+      for (var si = 0; si < meta.length; si++) {
+        obj.setVisibleAt(meta[si].slotId, false);
+        _guidToSlot[meta[si].guid] = { mesh: obj, slotId: meta[si].slotId };
+      }
+      _batchedState.push({ mesh: obj, meta: meta });
+      return;
+    }
     if (obj.isMesh && obj.visible) {
       obj.visible = false;
       _hiddenMeshes.push(obj);
@@ -118,13 +134,19 @@ function activate(A) {
 
   // Reset phase stepper
   _phaseIndex = -1;
+  _shownCount = 0;
   _loadPhases(A);
 
   // Position camera to see envelope
   _fitCamera(A);
 
+  // Update HUD for Doc mode — step zero, 0 elements
+  _updateHud();
+
   console.log('§DOC_CANVAS activate building=' + A._bom.building +
     ' hidden=' + _hiddenMeshes.length +
+    ' batchedMeshes=' + _batchedState.length +
+    ' batchedSlots=' + Object.keys(_guidToSlot).length +
     ' envelope=' + A._bom.envelope.width + 'x' + A._bom.envelope.depth + 'x' + A._bom.envelope.height + 'm');
 }
 
@@ -140,6 +162,20 @@ function deactivate(A) {
     _hiddenMeshes[i].visible = true;
   }
   _hiddenMeshes = [];
+
+  // §S260: Restore BatchedMesh slots to visible
+  for (var bi = 0; bi < _batchedState.length; bi++) {
+    var bs = _batchedState[bi];
+    for (var si = 0; si < bs.meta.length; si++) {
+      bs.mesh.setVisibleAt(bs.meta[si].slotId, true);
+    }
+  }
+  _batchedState = [];
+  _guidToSlot = {};
+
+  // Hide Doc HUD sections
+  _hideHud();
+  _shownCount = 0;
 
   // Remove Doc group from scene
   if (_group && A.scene) {
@@ -191,6 +227,9 @@ function nextPhase(A) {
 
   // Re-render grid if new lines were added
   if (linesAdded > 0) _renderGrid(A);
+
+  // Update HUD with new grid bays + element count
+  _updateHud();
 
   console.log('§DOC_NEXT phase=' + (_phaseIndex + 1) + '/' + filtered.length +
     ' disc=' + (phase.disc || '?') + ' name=' + phase.name +
@@ -568,7 +607,16 @@ function _materializePhase(A, phase) {
     guidSet[phase.guids[i]] = true;
   }
 
-  // Find meshes in hidden list that match phase guids
+  // §S260: BatchedMesh path — use _guidToSlot for per-slot visibility
+  for (var k = 0; k < phase.guids.length; k++) {
+    var slot = _guidToSlot[phase.guids[k]];
+    if (slot) {
+      slot.mesh.setVisibleAt(slot.slotId, true);
+      shown++;
+    }
+  }
+
+  // Single-mesh path — find meshes in hidden list that match phase guids
   for (var j = _hiddenMeshes.length - 1; j >= 0; j--) {
     var mesh = _hiddenMeshes[j];
     var guid = mesh.userData && mesh.userData.guid;
@@ -579,18 +627,54 @@ function _materializePhase(A, phase) {
     }
   }
 
-  // Also check instanced meshes that store guids differently
-  if (shown === 0 && A._guidToMesh) {
-    for (var k = 0; k < phase.guids.length; k++) {
-      var m = A._guidToMesh[phase.guids[k]];
-      if (m && !m.visible) {
-        m.visible = true;
-        shown++;
-      }
+  _shownCount += shown;
+  console.log('§DOC_MATERIALIZE phase=' + phase.name + ' requested=' + phase.guids.length + ' shown=' + shown + ' total=' + _shownCount);
+}
+
+// ── HUD update — grid bays, element count, active discipline ───────────────
+function _updateHud() {
+  // Grid bays section
+  var section = typeof document !== 'undefined' && document.getElementById('hud-gridbays-section');
+  var body = typeof document !== 'undefined' && document.getElementById('gridbays-body');
+  if (section && body) {
+    var html = '';
+    // X-axis bays (A-B, B-C, ...)
+    for (var i = 0; i < _xPositions.length - 1; i++) {
+      var span = Math.abs(_xPositions[i + 1] - _xPositions[i]);
+      html += '<div style="display:flex;justify-content:space-between;padding:1px 4px">' +
+        '<span style="color:#4fc3f7">' + _xLabels[i] + '–' + _xLabels[i + 1] + '</span>' +
+        '<span>' + (span * 1000).toFixed(0) + ' mm</span></div>';
     }
+    // Z-axis bays (1-2, 2-3, ...)
+    for (var j = 0; j < _zPositions.length - 1; j++) {
+      var zSpan = Math.abs(_zPositions[j + 1] - _zPositions[j]);
+      html += '<div style="display:flex;justify-content:space-between;padding:1px 4px">' +
+        '<span style="color:#81c784">' + _zLabels[j] + '–' + _zLabels[j + 1] + '</span>' +
+        '<span>' + (zSpan * 1000).toFixed(0) + ' mm</span></div>';
+    }
+    body.innerHTML = html || '<div style="padding:2px 4px;color:#666">Envelope only</div>';
+    section.style.display = 'block';
   }
 
-  console.log('§DOC_MATERIALIZE phase=' + phase.name + ' requested=' + phase.guids.length + ' shown=' + shown);
+  // Element count in HUD — reuse s-buildings-done
+  var countEl = typeof document !== 'undefined' && document.getElementById('s-buildings-done');
+  if (countEl) countEl.textContent = _shownCount;
+
+  // Active discipline badge in status
+  if (typeof window !== 'undefined' && window.APP && APP.status) {
+    var phaseInfo = _phaseIndex < 0 ? 'Step 0 — envelope' :
+      'Phase ' + (_phaseIndex + 1) + ' — ' + _activeDisc;
+    APP.status.textContent = phaseInfo + ' | ' + _shownCount + ' elements';
+  }
+
+  console.log('§DOC_HUD bays=' + (_xPositions.length - 1 + _zPositions.length - 1) +
+    ' elements=' + _shownCount + ' disc=' + _activeDisc +
+    ' phase=' + (_phaseIndex < 0 ? 'zero' : _phaseIndex + 1));
+}
+
+function _hideHud() {
+  var section = typeof document !== 'undefined' && document.getElementById('hud-gridbays-section');
+  if (section) section.style.display = 'none';
 }
 
 // ── Camera fit to envelope ──────────────────────────────────────────────────
@@ -782,6 +866,7 @@ function handleRosettaDrag(axis, position, A) {
   if (_addGridPosition(axis, position)) {
     _resortLabels();
     _renderGrid(A);
+    _updateHud();
     // Log to kernel_ops — this IS the user's creative contribution
     if (window.KernelOps && A.db) {
       try {

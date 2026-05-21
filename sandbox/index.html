@@ -411,6 +411,11 @@
       <b class="hud-accordion-header" onclick="togglePanel('disc-body');resetHudAutoCollapse()" data-trl="ui_disciplines">Disciplines</b>
       <div id="disc-body" class="panel-body"></div>
     </div>
+    <!-- S266: Grid bays accordion — shown only in Doc mode -->
+    <div id="hud-gridbays-section" class="hud-accordion" style="display:none">
+      <b class="hud-accordion-header" onclick="togglePanel('gridbays-body');resetHudAutoCollapse()">Grid Bays</b>
+      <div id="gridbays-body" class="panel-body" style="font:11px monospace;color:#ccc;padding:2px 0"></div>
+    </div>
     <button id="variance-btn" onclick="toggleVariance();event.stopPropagation()" style="display:none;margin-top:6px;width:100%;padding:6px;background:rgba(204,204,68,0.15);color:#cccc44;border:1px solid rgba(204,204,68,0.4);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">&#916; <span data-trl="ui_variance">Variance</span></button>
   </div>
 </div>
@@ -742,7 +747,7 @@
 <script src="helpers.js?v=4" onerror="console.warn('§LOAD_FAIL helpers.js')"></script>
 <script src="streaming.js?v=42" onerror="console.warn('§LOAD_FAIL streaming.js')"></script>
 <script src="dlod.js?v=5" onerror="console.warn('§LOAD_FAIL dlod.js')"></script>
-<script src="panels.js?v=20" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
+<script src="panels.js?v=18" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
 <script src="tools.js?v=21" onerror="console.warn('§LOAD_FAIL tools.js')"></script>
 <script src="picking.js?v=24" onerror="console.warn('§LOAD_FAIL picking.js')"></script>
 <script src="tour.js?v=3" onerror="console.warn('§LOAD_FAIL tour.js')"></script>
@@ -775,9 +780,8 @@
 <script src="grid_contours.js?v=5" onerror="console.warn('[GridContours] grid_contours.js skipped')"></script>
 <script src="grid_dim_chains.js?v=4" onerror="console.warn('[DimChains] grid_dim_chains.js skipped')"></script>
 <script src="kernel_ops.js?v=3" onerror="console.warn('[KernelOps] kernel_ops.js skipped')"></script>
-<script src="bom_extract.js?v=2" onerror="console.warn('[BOMExtract] bom_extract.js skipped')"></script>
+<script src="bom_extract.js?v=1" onerror="console.warn('[BOMExtract] bom_extract.js skipped')"></script>
 <script src="doc_canvas.js?v=3" onerror="console.warn('[DocCanvas] doc_canvas.js skipped')"></script>
-<script src="route_walker.js?v=1" onerror="console.warn('[RouteWalker] route_walker.js skipped')"></script>
 <script src="cost_panel.js?v=4" onerror="console.warn('[CostPanel] cost_panel.js skipped')"></script>
 <script src="grid_drag.js?v=6" onerror="console.warn('[GridDrag] grid_drag.js skipped')"></script>
 <script src="grid_scissors.js?v=2" onerror="console.warn('[GridScissors] grid_scissors.js skipped')"></script>
@@ -830,7 +834,7 @@ if(new URLSearchParams(location.search).get('embedded')!=='true'){
 </script>
 <script>
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=431')
+  navigator.serviceWorker.register('sw.js?v=433')
     .then(function(r){console.log('§SW_REG scope='+r.scope)})
     .catch(function(e){console.warn('§SW_REG_FAIL',e)});
 }
