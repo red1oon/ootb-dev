@@ -162,33 +162,86 @@ function _buildEnvelope(A) {
   geo.dispose();
 }
 
-// ── Fresh 2D Grid — 3 axes × 2 lines at envelope edges + dimensions ────────
+// ── Fresh 2D Grid — AABBCC bubbles + span dimensions ────────────────────────
+// Proper structural grid: lettered lines along X (A, B, C...), numbered along Z (1, 2, 3...)
+// with bay span dimensions between lines. Starts from envelope edges, subdivided
+// by column cadence or evenly spaced if no cadence data.
 function _buildGrid(A) {
   if (!A._docEnv) return;
   var e = A._docEnv;
   var lineColor = 0xff6666;
-  var labelColor = '#ff8888';
+  var dimColor = '#4fc3f7';   // cyan for dimensions
+  var bubbleColor = '#ff8888'; // red for bubble labels
+  var extend = 3;  // grid lines extend beyond envelope
 
-  // Grid lines: 2 per axis at min/max positions
-  // X-axis lines (run along X at min/max Y ground level)
-  _addGridLine(e.x0, e.y0, e.z0, e.x1, e.y0, e.z0, lineColor);  // bottom-front
-  _addGridLine(e.x0, e.y0, e.z1, e.x1, e.y0, e.z1, lineColor);  // bottom-back
+  // ── X-axis grid lines (lettered A, B, C...) ──
+  var xPositions = [];
+  if (A._bom && A._bom.cadence && A._bom.cadence.uniqueX) {
+    // Use column positions as grid lines
+    var ox = A.modelOffset ? A.modelOffset.x : 0;
+    for (var i = 0; i < A._bom.cadence.uniqueX.length; i++) {
+      xPositions.push(A._bom.cadence.uniqueX[i] - ox);
+    }
+  }
+  // Always include envelope edges
+  if (!xPositions.length || xPositions[0] > e.x0 + 0.5) xPositions.unshift(e.x0);
+  if (xPositions[xPositions.length - 1] < e.x1 - 0.5) xPositions.push(e.x1);
+  // If still only 2 lines, subdivide evenly into ~6m bays
+  if (xPositions.length <= 2) {
+    var nBays = Math.max(2, Math.round(e.w / 6));
+    xPositions = [];
+    for (var xi = 0; xi <= nBays; xi++) {
+      xPositions.push(e.x0 + (e.w * xi / nBays));
+    }
+  }
 
-  // Z-axis lines (run along depth at min/max X ground level)
-  _addGridLine(e.x0, e.y0, e.z0, e.x0, e.y0, e.z1, lineColor);  // left
-  _addGridLine(e.x1, e.y0, e.z0, e.x1, e.y0, e.z1, lineColor);  // right
+  // ── Z-axis grid lines (numbered 1, 2, 3...) ──
+  var zPositions = [];
+  // No cadence along Z usually, subdivide evenly
+  var nZBays = Math.max(2, Math.round(e.d / 6));
+  for (var zi = 0; zi <= nZBays; zi++) {
+    zPositions.push(e.z0 + (e.d * zi / nZBays));
+  }
 
-  // Y-axis lines (vertical at corners)
-  _addGridLine(e.x0, e.y0, e.z0, e.x0, e.y1, e.z0, lineColor);  // front-left
-  _addGridLine(e.x1, e.y0, e.z0, e.x1, e.y1, e.z0, lineColor);  // front-right
+  // ── Draw X grid lines + A,B,C bubbles ──
+  var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (var a = 0; a < xPositions.length; a++) {
+    var xp = xPositions[a];
+    // Line runs along Z (depth) at ground level
+    _addGridLine(xp, e.y0, e.z0 - extend, xp, e.y0, e.z1 + extend, lineColor);
+    // Bubble label at front
+    var label = a < 26 ? letters[a] : letters[Math.floor(a / 26) - 1] + letters[a % 26];
+    _addBubble(label, xp, e.y0, e.z0 - extend - 2, bubbleColor);
+  }
 
-  // Dimension labels
-  var env = A._bom.envelope;
-  _addDimLabel(env.width.toFixed(1) + 'm', (e.x0 + e.x1) / 2, e.y0 - 1, e.z0 - 1, labelColor);   // width along X
-  _addDimLabel(env.depth.toFixed(1) + 'm', e.x1 + 1, e.y0 - 1, (e.z0 + e.z1) / 2, labelColor);    // depth along Z
-  _addDimLabel(env.height.toFixed(1) + 'm', e.x0 - 1, (e.y0 + e.y1) / 2, e.z0 - 1, labelColor);   // height along Y
+  // ── Draw Z grid lines + 1,2,3 bubbles ──
+  for (var b = 0; b < zPositions.length; b++) {
+    var zp = zPositions[b];
+    // Line runs along X (width) at ground level
+    _addGridLine(e.x0 - extend, e.y0, zp, e.x1 + extend, e.y0, zp, lineColor);
+    // Bubble label at left
+    _addBubble(String(b + 1), e.x0 - extend - 2, e.y0, zp, bubbleColor);
+  }
 
-  console.log('§DOC_GRID built lines=6 labels=3');
+  // ── Span dimensions between X grid lines ──
+  for (var sx = 1; sx < xPositions.length; sx++) {
+    var span = Math.abs(xPositions[sx] - xPositions[sx - 1]);
+    var midX = (xPositions[sx] + xPositions[sx - 1]) / 2;
+    _addDimLabel(span.toFixed(2) + 'm', midX, e.y0, e.z0 - extend - 0.5, dimColor);
+  }
+
+  // ── Span dimensions between Z grid lines ──
+  for (var sz = 1; sz < zPositions.length; sz++) {
+    var spanZ = Math.abs(zPositions[sz] - zPositions[sz - 1]);
+    var midZ = (zPositions[sz] + zPositions[sz - 1]) / 2;
+    _addDimLabel(spanZ.toFixed(2) + 'm', e.x0 - extend - 0.5, e.y0, midZ, dimColor);
+  }
+
+  // ── Height label on vertical ──
+  _addDimLabel(A._bom.envelope.height.toFixed(1) + 'm', e.x0 - 2, (e.y0 + e.y1) / 2, e.z0 - 2, dimColor);
+
+  console.log('§DOC_GRID built xLines=' + xPositions.length + ' zLines=' + zPositions.length +
+    ' xSpans=' + (xPositions.length - 1) + ' zSpans=' + (zPositions.length - 1));
 }
 
 function _addGridLine(x0, y0, z0, x1, y1, z1, color) {
@@ -206,7 +259,7 @@ function _addDimLabel(text, x, y, z, color) {
   canvas.width = 256;
   canvas.height = 64;
   var ctx = canvas.getContext('2d');
-  ctx.font = 'bold 36px monospace';
+  ctx.font = 'bold 32px monospace';
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -216,7 +269,33 @@ function _addDimLabel(text, x, y, z, color) {
   var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
   var sprite = new THREE.Sprite(spriteMat);
   sprite.position.set(x, y, z);
-  sprite.scale.set(8, 2, 1);
+  sprite.scale.set(6, 1.5, 1);
+  _gridGroup.add(sprite);
+}
+
+function _addBubble(text, x, y, z, color) {
+  var canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  var ctx = canvas.getContext('2d');
+  // Circle
+  ctx.beginPath();
+  ctx.arc(64, 64, 56, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  // Label
+  ctx.font = 'bold 48px monospace';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 64, 64);
+
+  var texture = new THREE.CanvasTexture(canvas);
+  var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+  var sprite = new THREE.Sprite(spriteMat);
+  sprite.position.set(x, y, z);
+  sprite.scale.set(3, 3, 1);
   _gridGroup.add(sprite);
 }
 
@@ -229,15 +308,15 @@ function _loadPhases(A) {
   if (hasTasks.length) {
     // Load phases from tasks table, ordered by start
     var tasks = A.dbQuery(
-      'SELECT t.id, t.name, t.task_type FROM tasks t ' +
-      'ORDER BY t.id'
+      'SELECT t.task_id, t.name FROM tasks t ' +
+      'ORDER BY t.start_date, t.task_id'
     );
     for (var i = 0; i < tasks.length; i++) {
       var taskId = tasks[i][0];
       var taskName = tasks[i][1] || 'Phase ' + (i + 1);
       // Get elements for this task
       var elems = A.dbQuery(
-        'SELECT guid FROM task_elements WHERE task_id = ?', [taskId]
+        'SELECT guid FROM task_elements WHERE task_id = \'' + taskId + '\''
       );
       if (elems.length) {
         _phases.push({
