@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#ffffff">
-<title>BIM OOTB DEV — Sysnova Information Systems Limited</title>
+<title>BIM OOTB — Sysnova Information Systems Limited</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -151,9 +151,6 @@
 </head>
 <body>
 
-<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#e65100;color:#fff;text-align:center;font-size:12px;font-weight:bold;padding:4px 0;letter-spacing:1px">⚠ DEVELOPMENT SITE — Not for public use</div>
-<div style="height:24px"></div>
-
 <div class="header">
   <a href="https://www.sysnova.co.uk/" target="_blank" style="display:block;margin:0 auto 16px;text-decoration:none"><img src="Sysnova.png" alt="Sysnova Information Systems Limited" style="display:block;margin:0 auto;height:80px;width:auto"></a>
   <h1 style="color:#0277bd;margin-bottom:0"><span style="font-size:64px;display:block;margin-bottom:-8px;line-height:0.8;font-family:'Arial Black',Impact,sans-serif;letter-spacing:16px;margin-left:16px">BIM</span><span data-trl="landing_ootb" style="font-size:16px;font-weight:400;font-family:'Arial Black',Impact,sans-serif;letter-spacing:6px;margin-left:6px;color:#0277bdaa;text-transform:lowercase">outofthebox</span></h1>
@@ -289,6 +286,9 @@
   <div style="margin-top:20px;color:#555;font-size:11px">
     <span data-trl="landing_created_by">Created by</span> <a href="mailto:red1org@gmail.com" style="color:#0277bd;text-decoration:none">Redhuan D. OON</a> (red1) — October 2025
   </div>
+  <div style="margin-top:16px">
+    <a href="sandbox/erp.html" style="color:#e8a735;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:2px">ERP OOTB</a>
+  </div>
   <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.1);font-size:13px;color:#333;letter-spacing:0.5px">
     <a href="https://www.sysnova.co.uk/" target="_blank" style="text-decoration:none"><strong style="color:#0277bd;font-size:14px;display:block;margin-bottom:3px">Sysnova Information Systems Limited</strong></a>
     UNITED KINGDOM
@@ -364,14 +364,14 @@ const BUILDINGS = {
   'VogelGesamt': { db: 'VogelGesamt_extracted.db' },
   'BimWhale_Large': { db: 'BimWhale_Large_extracted.db' },
   'AC9_HausGH': { db: 'AC9_HausGH_extracted.db' },
-  'HospitalAuckland': { db: 'HospitalAuckland_extracted.db' },
+  'HospitalAuckland': { db: 'Ifc4_Revit_extracted.db' },
   'SmileyWest': { db: 'SmileyWest_extracted.db' },
   'Jesse': { db: 'Jesse_extracted.db' },
   'AC11Institute': { db: 'AC11Institute_extracted.db' },
   'Ifc2x3_AC11Institute': { db: 'AC11Institute_extracted.db' },
   'Duplex': { db: 'Duplex_extracted.db' },
   'LTU_AHouse': { db: 'LTU_AHouse_extracted.db' },
-  'Hospital': { db: 'hospital.db' },
+  'Hospital': { db: 'Hospital_extracted.db' },
   'Hospital_3': { db: 'Hospital_3_extracted.db' },
   'Terminal': { db: 'Terminal_extracted.db' },
   'Clinic': { db: 'Clinic_extracted.db' },
@@ -397,7 +397,7 @@ function saveViewed() {
 }
 
 // DB files served from production bucket — dev only overrides viewer/JS
-const _prodBase = 'https://objectstorage.ap-kulai-2.oraclecloud.com/n/ax3cp6tzwuy2/b/bim-ootb-live/o/';
+const _prodBase = 'https://objectstorage.ap-kulai-2.oraclecloud.com/n/ax3cp6tzwuy2/b/bim-ootb/o/';
 
 function openViewer(archName, repBuilding) {
   const bld = BUILDINGS[archName];
