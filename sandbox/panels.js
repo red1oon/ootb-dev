@@ -33,6 +33,9 @@ var ICONS = {
   next:      { svg: '<path d="m9 18 6-6-6-6"/>', trl: 'ui_tt_next', key: null, desc: 'Next Phase' },
   save:      { svg: '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/>', trl: 'ui_tt_save', key: null, desc: 'Save Design' },
   folderOpen: { svg: '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>', trl: 'ui_tt_open', key: null, desc: 'Open Design' },
+  // S266: MEP pipe icon (elbow pipe shape) + UBBL compliance checklist
+  pipe:      { svg: '<path d="M12 2v6"/><path d="M12 8a4 4 0 0 1 4 4v0"/><path d="M16 12h6"/><path d="M10 8h4"/><path d="M16 10v4"/>', trl: 'ui_tt_mep', key: null, desc: 'MEP Routes' },
+  checkList: { svg: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>', trl: 'ui_tt_ubbl', key: null, desc: 'UBBL Compliance' },
   // P1 sunglass slider icons
   sun:       { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', trl: 'ui_sun', key: null, desc: 'Sun intensity' },
   sunDim:    { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.66 6.34h.01"/><path d="M17.66 17.66h.01"/><path d="M6.34 17.66h.01"/><path d="M6.34 6.34h.01"/>', trl: 'ui_exposure', key: null, desc: 'Exposure' },
@@ -795,7 +798,14 @@ function setupPanels(A) {
       }});
       btnNext.id = 'doc-next-btn';
       pill.appendChild(btnNext);
-      // 5. Open — load saved NewIFC.db from IndexedDB
+      // 5. MEP — RouteWalker for pipe/duct routing
+      var btnMEP = A.icon('pipe', { size: 24, title: 'MEP Routes', onClick: function() {
+        console.log('§DOC_MEP route walker');
+        // TODO S266: wire to JS RouteWalker
+      }});
+      btnMEP.id = 'doc-mep-btn';
+      pill.appendChild(btnMEP);
+      // 6. Open — load saved NewBuilding.db from user's machine
       var btnOpen = A.icon('folderOpen', { size: 24, title: 'Open Design', onClick: function() {
         console.log('§DOC_OPEN list saved designs');
         // TODO S266: wire to IndexedDB NewIFC.db listing
@@ -809,8 +819,28 @@ function setupPanels(A) {
       }});
       btnSave.id = 'doc-save-btn';
       pill.appendChild(btnSave);
+      // 8. UBBL — compliance check
+      var btnUBBL = A.icon('checkList', { size: 24, title: 'UBBL Compliance', onClick: function() {
+        console.log('§DOC_UBBL compliance check');
+        // TODO S266: wire to ubbl_rules.json checker
+      }});
+      btnUBBL.id = 'doc-ubbl-btn';
+      pill.appendChild(btnUBBL);
       _docMode = true;
-      console.log('§DOC_PILL mode=doc icons=6');
+      console.log('§DOC_PILL mode=doc icons=8');
+      // S266: extract BOM on Doc pill entry
+      if (window.BOMExtract && A.db) {
+        var bld = A.activeBuilding || 'unknown';
+        BOMExtract.loadCached(bld, function(cached) {
+          if (cached) {
+            A._bom = cached;
+            console.log('§DOC_BOM cached building=' + bld + ' storeys=' + cached.storeys.length);
+          } else {
+            A._bom = BOMExtract.extract(A);
+            if (A._bom) BOMExtract.applySTDMEP(A._bom);
+          }
+        });
+      }
     }
   };
 
