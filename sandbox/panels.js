@@ -38,6 +38,15 @@ var ICONS = {
   checkList: { svg: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>', trl: 'ui_tt_ubbl', key: null, desc: 'UBBL Compliance' },
   // S266: Rosetta Stone — tablet icon (stone slab with hieroglyph lines)
   rosetta:   { svg: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 10h5"/><path d="M8 14h6"/><path d="M8 18h4"/>', trl: 'ui_tt_rosetta', key: null, desc: 'Rosetta Stone' },
+  // S266: Discipline selector — hub icon + per-discipline icons
+  disciplines: { svg: '<circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="20" r="2"/><circle cx="4" cy="12" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="6.34" cy="6.34" r="2"/><circle cx="17.66" cy="6.34" r="2"/><circle cx="6.34" cy="17.66" r="2"/><circle cx="17.66" cy="17.66" r="2"/><line x1="12" y1="7" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="17"/><line x1="7" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="17" y2="12"/>', trl: 'ui_tt_disc', key: null, desc: 'Disciplines' },
+  discSTR:   { svg: '<rect x="10" y="2" width="4" height="20"/><path d="M6 4h12"/><path d="M6 20h12"/>', trl: null, key: null, desc: 'Structural' },
+  discARC:   { svg: '<path d="M3 21V8l9-6 9 6v13"/><path d="M9 21v-6h6v6"/>', trl: null, key: null, desc: 'Architectural' },
+  discFP:    { svg: '<path d="M12 2v4"/><circle cx="12" cy="10" r="4"/><path d="M8 13l-2 6"/><path d="M16 13l2 6"/><path d="M12 14v5"/><circle cx="12" cy="10" r="1" fill="currentColor"/>', trl: null, key: null, desc: 'Fire Protection' },
+  discACMV:  { svg: '<path d="M2 12c2-3 4-4 6-4s4 2 6 0 4-4 6-4"/><path d="M2 17c2-3 4-4 6-4s4 2 6 0 4-4 6-4"/><path d="M2 7c2-3 4-4 6-4s4 2 6 0 4-4 6-4"/>', trl: null, key: null, desc: 'ACMV' },
+  discELEC:  { svg: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>', trl: null, key: null, desc: 'Electrical' },
+  discPLMB:  { svg: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>', trl: null, key: null, desc: 'Plumbing' },
+  discMEP:   { svg: '<path d="M12 2v6"/><path d="M12 8a4 4 0 0 1 4 4v0"/><path d="M16 12h6"/><path d="M10 8h4"/><path d="M16 10v4"/>', trl: null, key: null, desc: 'MEP General' },
   // P1 sunglass slider icons
   sun:       { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', trl: 'ui_sun', key: null, desc: 'Sun intensity' },
   sunDim:    { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.66 6.34h.01"/><path d="M17.66 17.66h.01"/><path d="M6.34 17.66h.01"/><path d="M6.34 6.34h.01"/>', trl: 'ui_exposure', key: null, desc: 'Exposure' },
@@ -800,13 +809,81 @@ function setupPanels(A) {
       }});
       btnNext.id = 'doc-next-btn';
       pill.appendChild(btnNext);
-      // 5. MEP — RouteWalker for pipe/duct routing
-      var btnMEP = A.icon('pipe', { size: 24, title: 'MEP Routes', onClick: function() {
-        console.log('§DOC_MEP route walker');
-        // TODO S266: wire to JS RouteWalker
+      // 5. Discipline selector — replaces MEP icon. Hub icon opens popup with all
+      //    disciplines in the building. Selected disc drives what Next reveals.
+      //    Active disc shown in top-right status badge.
+      var _discPopup = null;
+      var _discIconMap = {
+        STR: 'discSTR', ARC: 'discARC', MEP: 'discMEP',
+        FP: 'discFP', ELEC: 'discELEC', ACMV: 'discACMV', PLMB: 'discPLMB'
+      };
+      var _discColorMap = {
+        STR: '#e57373', ARC: '#64b5f6', MEP: '#81c784',
+        FP: '#ff8a65', ELEC: '#fff176', ACMV: '#4dd0e1', PLMB: '#ba68c8'
+      };
+      var btnDisc = A.icon('disciplines', { size: 24, title: 'Disciplines', onClick: function() {
+        if (_discPopup) { _discPopup.remove(); _discPopup = null; return; }
+        // Build popup from BOM disciplines
+        var discs = [];
+        if (A._bom && A._bom.storeys) {
+          var seen = {};
+          for (var si = 0; si < A._bom.storeys.length; si++) {
+            for (var di = 0; di < A._bom.storeys[si].disciplines.length; di++) {
+              var dn = A._bom.storeys[si].disciplines[di].name;
+              if (!seen[dn]) { seen[dn] = true; discs.push(dn); }
+            }
+          }
+        }
+        if (!discs.length) { APP.status.textContent = 'No disciplines found'; return; }
+        _discPopup = document.createElement('div');
+        _discPopup.className = 'bim-panel';
+        _discPopup.style.cssText = 'position:fixed;top:60px;right:10px;z-index:1100;padding:8px;min-width:140px;';
+        var activeDisc = window.DocCanvas ? DocCanvas.getActiveDisc() : 'ARC';
+        for (var k = 0; k < discs.length; k++) {
+          (function(d) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;border-radius:6px;' +
+              (d === activeDisc ? 'background:rgba(255,255,255,0.15);' : '');
+            // Discipline icon
+            var ic = A.icon(_discIconMap[d] || 'discMEP', { size: 20 });
+            ic.style.color = _discColorMap[d] || '#aaa';
+            ic.style.minWidth = '24px';
+            row.appendChild(ic);
+            // Label
+            var lbl = document.createElement('span');
+            lbl.textContent = d;
+            lbl.style.cssText = 'color:' + (_discColorMap[d] || '#ccc') + ';font:bold 13px monospace;';
+            row.appendChild(lbl);
+            // Active indicator
+            if (d === activeDisc) {
+              var dot = document.createElement('span');
+              dot.textContent = ' \u25CF';
+              dot.style.color = '#4caf50';
+              row.appendChild(dot);
+            }
+            row.onpointerup = function() {
+              if (window.DocCanvas) DocCanvas.setActiveDisc(d, A);
+              btnDisc.style.color = _discColorMap[d] || '';
+              _discPopup.remove(); _discPopup = null;
+              console.log('§DOC_DISC selected=' + d);
+            };
+            _discPopup.appendChild(row);
+          })(discs[k]);
+        }
+        document.body.appendChild(_discPopup);
+        // Auto-close on outside tap
+        setTimeout(function() {
+          document.addEventListener('pointerup', function _closeDisc(ev) {
+            if (_discPopup && !_discPopup.contains(ev.target) && ev.target !== btnDisc) {
+              _discPopup.remove(); _discPopup = null;
+              document.removeEventListener('pointerup', _closeDisc);
+            }
+          });
+        }, 100);
       }});
-      btnMEP.id = 'doc-mep-btn';
-      pill.appendChild(btnMEP);
+      btnDisc.id = 'doc-disc-btn';
+      btnDisc.style.color = _discColorMap['ARC'];  // default ARC color
+      pill.appendChild(btnDisc);
       // 6. Open — load saved NewBuilding.db from user's machine
       var btnOpen = A.icon('folderOpen', { size: 24, title: 'Open Design', onClick: function() {
         console.log('§DOC_OPEN list saved designs');
