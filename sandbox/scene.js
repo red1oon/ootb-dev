@@ -712,15 +712,14 @@ function setupScene(A) {
             ch.innerHTML = _ic(c.icon) + '<span>' + c.name + '</span>';
             childDiv.appendChild(ch);
           });
-          // (+) toggle — placed before the icon in the row
+          // Red bar toggle — sits left of icon, same alignment as other rows
           var toggle = document.createElement('span');
-          toggle.textContent = '(+)';
-          toggle.style.cssText = 'color:#4fc3f7;font-size:10px;cursor:pointer;margin-right:4px;flex-shrink:0';
+          toggle.style.cssText = 'width:3px;height:16px;background:#f44336;border-radius:1px;flex-shrink:0;cursor:pointer;margin-right:-3px';
           toggle.addEventListener('click', function(e) {
             e.stopPropagation();
             var open = childDiv.style.display !== 'none';
             childDiv.style.display = open ? 'none' : 'block';
-            toggle.textContent = open ? '(+)' : '(\u2212)';
+            toggle.style.background = open ? '#f44336' : '#4fc3f7';
           });
           var rowSpan = row.querySelector('span');
           rowSpan.insertBefore(toggle, rowSpan.firstChild);
