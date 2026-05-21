@@ -619,7 +619,7 @@ function setupScene(A) {
     { seq: 'F',  name: 'Find / Navigate', icon: _ic('<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>') },
     { seq: 'X',  name: 'Section Cut',     icon: _ic('<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>') },
     { seq: 'C',  name: 'Clash Matrix',    icon: _ic('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>') },
-    { seq: 'P',  name: 'Palette',         icon: _ic('<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>') },
+    { seq: 'P',  name: 'Palette',         icon: _ic('<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>'), children: ['Ambience 0\u2013100', 'Sun 0\u20135', 'Exposure 0.1\u20133', 'Ambient 0\u20132', 'Hemisphere 0\u20132'] },
     { seq: '2',  name: '2D Grid',         icon: _ic('<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/>') },
     { seq: 'L',  name: 'Fly Tour',        icon: _ic('<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>') },
     { seq: 'S',  name: 'Screenshot',      icon: _ic('<path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/>') },
@@ -696,6 +696,28 @@ function setupScene(A) {
           highlightRows();
         });
         listEl.appendChild(row);
+        // S265 P10: expandable children (+/−) inline tree
+        if (entry.children && entry.children.length) {
+          var childDiv = document.createElement('div');
+          childDiv.style.cssText = 'display:none;padding:0 14px 4px 42px';
+          entry.children.forEach(function(c) {
+            var ch = document.createElement('div');
+            ch.style.cssText = 'font-size:11px;color:#888;padding:2px 0';
+            ch.textContent = c;
+            childDiv.appendChild(ch);
+          });
+          var toggle = document.createElement('span');
+          toggle.textContent = ' (+)';
+          toggle.style.cssText = 'color:#4fc3f7;font-size:11px;cursor:pointer;margin-left:4px';
+          toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var open = childDiv.style.display !== 'none';
+            childDiv.style.display = open ? 'none' : 'block';
+            toggle.textContent = open ? ' (+)' : ' (\u2212)';
+          });
+          row.querySelector('span').appendChild(toggle);
+          listEl.appendChild(childDiv);
+        }
       });
       return matches;
     }
@@ -708,7 +730,8 @@ function setupScene(A) {
     }
 
     var currentMatches = renderList('');
-    searchInput.focus();
+    // §G5: no auto-focus on mobile — soft keyboard is premature
+    if (!window._isMobile) searchInput.focus();
 
     searchInput.addEventListener('input', function() {
       cursor = 0;
