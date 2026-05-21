@@ -36,6 +36,8 @@ var ICONS = {
   // S266: MEP pipe icon (elbow pipe shape) + UBBL compliance checklist
   pipe:      { svg: '<path d="M12 2v6"/><path d="M12 8a4 4 0 0 1 4 4v0"/><path d="M16 12h6"/><path d="M10 8h4"/><path d="M16 10v4"/>', trl: 'ui_tt_mep', key: null, desc: 'MEP Routes' },
   checkList: { svg: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>', trl: 'ui_tt_ubbl', key: null, desc: 'UBBL Compliance' },
+  // S266: Rosetta Stone — tablet icon (stone slab with hieroglyph lines)
+  rosetta:   { svg: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 10h5"/><path d="M8 14h6"/><path d="M8 18h4"/>', trl: 'ui_tt_rosetta', key: null, desc: 'Rosetta Stone' },
   // P1 sunglass slider icons
   sun:       { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>', trl: 'ui_sun', key: null, desc: 'Sun intensity' },
   sunDim:    { svg: '<circle cx="12" cy="12" r="4"/><path d="M12 4h.01"/><path d="M20 12h.01"/><path d="M12 20h.01"/><path d="M4 12h.01"/><path d="M17.66 6.34h.01"/><path d="M17.66 17.66h.01"/><path d="M6.34 17.66h.01"/><path d="M6.34 6.34h.01"/>', trl: 'ui_exposure', key: null, desc: 'Exposure' },
@@ -826,8 +828,18 @@ function setupPanels(A) {
       }});
       btnUBBL.id = 'doc-ubbl-btn';
       pill.appendChild(btnUBBL);
+      // 9. Rosetta Stone — grid calibration mode
+      var _rosettaOn = false;
+      var btnRosetta = A.icon('rosetta', { size: 24, title: 'Rosetta Stone', onClick: function() {
+        _rosettaOn = !_rosettaOn;
+        btnRosetta.classList.toggle('active', _rosettaOn);
+        if (window.DocCanvas) DocCanvas.setCalibrationMode(_rosettaOn);
+        console.log('§DOC_ROSETTA calibration=' + _rosettaOn);
+      }});
+      btnRosetta.id = 'doc-rosetta-btn';
+      pill.appendChild(btnRosetta);
       _docMode = true;
-      console.log('§DOC_PILL mode=doc icons=8');
+      console.log('§DOC_PILL mode=doc icons=9');
       // S266: extract BOM on Doc pill entry, then activate canvas
       if (window.BOMExtract && A.db) {
         var bld = A.activeBuilding || 'unknown';

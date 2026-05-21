@@ -415,13 +415,46 @@ function _disposeGroup(group) {
   });
 }
 
+// ── Rosetta Stone — grid calibration mode ───────────────────────────────────
+// When active, grid line drags are CALIBRATION (teaching correct positions),
+// not DESIGN (moving geometry). Lines turn gold. Corrections are recorded
+// as GRID_CALIBRATE kernel_ops — the user IS the Rosetta Stone.
+var _calibrationMode = false;
+var _calibrations = [];  // [{axis, label, detected, corrected, delta}]
+
+function setCalibrationMode(on) {
+  _calibrationMode = !!on;
+  // Visual feedback: turn grid lines gold in calibration mode, red in normal
+  if (_gridGroup) {
+    _gridGroup.traverse(function(obj) {
+      if (obj.isLine && obj.material) {
+        obj.material.color.setHex(_calibrationMode ? 0xffc107 : 0xff6666);
+      }
+    });
+  }
+  console.log('§DOC_ROSETTA mode=' + (_calibrationMode ? 'calibrate' : 'design'));
+}
+
+function recordCalibration(axis, label, detected, corrected) {
+  var delta = corrected - detected;
+  _calibrations.push({ axis: axis, label: label, detected: detected, corrected: corrected, delta: delta });
+  console.log('§DOC_ROSETTA_SNAP axis=' + axis + ' label=' + label +
+    ' detected=' + detected.toFixed(3) + ' corrected=' + corrected.toFixed(3) +
+    ' delta=' + delta.toFixed(3) + 'm');
+  // TODO: log as GRID_CALIBRATE kernel_op
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 window.DocCanvas = {
   activate: activate,
   deactivate: deactivate,
   toggleGrid: toggleGrid,
   nextPhase: nextPhase,
-  isActive: function() { return _active; }
+  setCalibrationMode: setCalibrationMode,
+  recordCalibration: recordCalibration,
+  isActive: function() { return _active; },
+  isCalibrating: function() { return _calibrationMode; },
+  getCalibrations: function() { return _calibrations.slice(); }
 };
 
 })(window);
