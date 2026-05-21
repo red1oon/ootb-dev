@@ -36,8 +36,8 @@ var ICONS = {
   // S266: MEP pipe icon (elbow pipe shape) + UBBL compliance checklist
   pipe:      { svg: '<path d="M12 2v6"/><path d="M12 8a4 4 0 0 1 4 4v0"/><path d="M16 12h6"/><path d="M10 8h4"/><path d="M16 10v4"/>', trl: 'ui_tt_mep', key: null, desc: 'MEP Routes' },
   checkList: { svg: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>', trl: 'ui_tt_ubbl', key: null, desc: 'UBBL Compliance' },
-  // S266: Rosetta Stone — tablet icon (stone slab with hieroglyph lines)
-  rosetta:   { svg: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8"/><path d="M8 10h5"/><path d="M8 14h6"/><path d="M8 18h4"/>', trl: 'ui_tt_rosetta', key: null, desc: 'Rosetta Stone' },
+  // S266: Rosetta Stone — diamond gem icon (distinctive, calibration = precious)
+  rosetta:   { svg: '<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21 6 9"/><path d="M12 21l6-12"/><path d="M8 3l4 6 4-6"/>', trl: 'ui_tt_rosetta', key: null, desc: 'Rosetta Stone' },
   // S266: Discipline selector — hub icon + per-discipline icons
   disciplines: { svg: '<circle cx="12" cy="12" r="3" fill="currentColor"/><circle cx="12" cy="4" r="2"/><circle cx="12" cy="20" r="2"/><circle cx="4" cy="12" r="2"/><circle cx="20" cy="12" r="2"/><circle cx="6.34" cy="6.34" r="2"/><circle cx="17.66" cy="6.34" r="2"/><circle cx="6.34" cy="17.66" r="2"/><circle cx="17.66" cy="17.66" r="2"/><line x1="12" y1="7" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="17"/><line x1="7" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="17" y2="12"/>', trl: 'ui_tt_disc', key: null, desc: 'Disciplines' },
   discSTR:   { svg: '<rect x="10" y="2" width="4" height="20"/><path d="M6 4h12"/><path d="M6 20h12"/>', trl: null, key: null, desc: 'Structural' },
