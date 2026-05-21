@@ -760,7 +760,8 @@ function setupPanels(A) {
     var pill = document.getElementById('icon-pill');
     if (!pill) return;
     if (_docMode) {
-      // restore main pill
+      // restore main pill + deactivate canvas
+      if (window.DocCanvas) DocCanvas.deactivate(A);
       pill.innerHTML = _mainPillHTML;
       pill.classList.remove('doc-mode');
       _docMode = false;
@@ -775,13 +776,13 @@ function setupPanels(A) {
       btnHome.id = 'doc-home-btn';
       pill.appendChild(btnHome);
       // 2. Grid — 2D grid + lengths + bubbles toggle
-      var _gridOn = false;
+      var _gridOn = true;  // grid starts ON
       var btnGrid = A.icon('grid', { size: 24, title: 'Grid', onClick: function() {
-        _gridOn = !_gridOn;
+        if (window.DocCanvas) _gridOn = DocCanvas.toggleGrid();
+        else _gridOn = !_gridOn;
         btnGrid.classList.toggle('active', _gridOn);
-        console.log('§DOC_GRID on=' + _gridOn);
-        // TODO S266: wire to GridDims.detectGrids() + grid_overlay
       }});
+      btnGrid.classList.add('active');  // starts ON
       btnGrid.id = 'doc-grid-btn';
       pill.appendChild(btnGrid);
       // 3. TM — Time Machine replay
@@ -793,8 +794,7 @@ function setupPanels(A) {
       pill.appendChild(btnTM);
       // 4. Next — advance one construction phase
       var btnNext = A.icon('next', { size: 24, title: 'Next Phase', onClick: function() {
-        console.log('§DOC_NEXT advance construction phase');
-        // TODO S266: wire to Gantt step-forward
+        if (window.DocCanvas) DocCanvas.nextPhase(A);
       }});
       btnNext.id = 'doc-next-btn';
       pill.appendChild(btnNext);
@@ -828,7 +828,7 @@ function setupPanels(A) {
       pill.appendChild(btnUBBL);
       _docMode = true;
       console.log('§DOC_PILL mode=doc icons=8');
-      // S266: extract BOM on Doc pill entry
+      // S266: extract BOM on Doc pill entry, then activate canvas
       if (window.BOMExtract && A.db) {
         var bld = A.activeBuilding || 'unknown';
         BOMExtract.loadCached(bld, function(cached) {
@@ -839,6 +839,8 @@ function setupPanels(A) {
             A._bom = BOMExtract.extract(A);
             if (A._bom) BOMExtract.applySTDMEP(A._bom);
           }
+          // Activate Doc canvas after BOM is ready
+          if (A._bom && window.DocCanvas) DocCanvas.activate(A);
         });
       }
     }
