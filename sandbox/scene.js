@@ -711,13 +711,16 @@ function setupScene(A) {
         row.innerHTML = '<span style="display:flex;align-items:center;gap:8px">' +
           (entry.icon || '') + entry.name + '</span>' +
           (entry.seq ? '<kbd style="background:#333;color:#4fc3f7;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px;border:1px solid #555">' + entry.seq + '</kbd>' : '');
-        row.addEventListener('click', function() {
-          // S265 P10: entries with children toggle sub-list instead of running action
+        row.addEventListener('click', function(e) {
+          // S265 P10: left zone (bar+icon, <36px) toggles children; right zone launches action
           if (entry._childDiv) {
-            var open = entry._childDiv.style.display !== 'none';
-            entry._childDiv.style.display = open ? 'none' : 'block';
-            if (entry._bar) entry._bar.style.background = open ? '#4fc3f7' : '#f44336';
-            return;
+            var rect = row.getBoundingClientRect();
+            if (e.clientX - rect.left < 36) {
+              var open = entry._childDiv.style.display !== 'none';
+              entry._childDiv.style.display = open ? 'none' : 'block';
+              if (entry._bar) entry._bar.style.background = open ? '#4fc3f7' : '#f44336';
+              return;
+            }
           }
           pal.remove();
           if (entry.action) { entry.action(); }
