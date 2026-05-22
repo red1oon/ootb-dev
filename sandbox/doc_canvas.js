@@ -701,8 +701,11 @@ function _loadPhases(A) {
   }
 
   var rootId = building.bomId;
+
+  // BOM walk collects: per floor → per tier → set of IFC classes + storey name.
+  // Then we query the extracted DB (A.db) for real GUIDs matching storey + class.
   var floorStack = [];
-  var floorBuckets = {};
+  var floorBuckets = {};  // bomId → { name, type, storey, 1:Set(class), 2:Set, 3:Set, 4:Set }
 
   function _cf() { return floorStack.length ? floorStack[floorStack.length - 1] : null; }
 
@@ -713,7 +716,7 @@ function _loadPhases(A) {
         var bomId = ctx.line.childProductId;
         floorStack.push(bomId);
         if (!floorBuckets[bomId]) {
-          floorBuckets[bomId] = { name: bomId, type: childType, 1:[], 2:[], 3:[], 4:[] };
+          floorBuckets[bomId] = { name: bomId, type: childType, storey: ctx.line.storey, 1:{}, 2:{}, 3:{}, 4:{} };
         }
       }
     },
@@ -725,33 +728,42 @@ function _loadPhases(A) {
       var cf = _cf();
       if (!cf) return;
       if (!floorBuckets[cf]) {
-        floorBuckets[cf] = { name: cf, type: 'FLOOR', 1:[], 2:[], 3:[], 4:[] };
+        floorBuckets[cf] = { name: cf, type: 'FLOOR', storey: ctx.line.storey, 1:{}, 2:{}, 3:{}, 4:{} };
       }
-
       var tier = _classifyTier(ctx.line.role);
-      var positions = VerbExpand.expandVerb(ctx.line.verbRef, ctx.line.qty,
-        ctx.line.dx, ctx.line.dy, ctx.line.dz);
-
-      var elemRef = ctx.line.childProductId;
-      for (var pi = 0; pi < positions.length; pi++) {
-        var guid = elemRef + (positions.length > 1 ? '_' + pi : '');
-        floorBuckets[cf][tier].push(guid);
+      floorBuckets[cf][tier][ctx.line.role] = true;
+      // Capture storey from leaf if floor-level storey was null
+      if (!floorBuckets[cf].storey && ctx.line.storey) {
+        floorBuckets[cf].storey = ctx.line.storey;
       }
     }
   });
 
-  // Convert buckets → ordered phases (structural first per floor)
+  // Convert buckets → phases by querying extracted DB for real GUIDs
   var tierNames = { 1: 'Structure', 2: 'Openings', 3: 'Finishes', 4: 'Infill' };
   var floorOrder = Object.keys(floorBuckets);
   for (var fi = 0; fi < floorOrder.length; fi++) {
     var b = floorBuckets[floorOrder[fi]];
     for (var tier = 1; tier <= 4; tier++) {
-      if (b[tier].length > 0) {
+      var classes = Object.keys(b[tier]);
+      if (!classes.length) continue;
+
+      // Query extracted DB for GUIDs matching this storey + these IFC classes
+      var guids = [];
+      if (A.db && A.dbQuery && b.storey) {
+        var classIn = classes.map(function(c) { return "'" + c.replace(/'/g, "''") + "'"; }).join(',');
+        var storeyEsc = b.storey.replace(/'/g, "''");
+        guids = A.dbQuery(
+          "SELECT guid FROM elements_meta WHERE storey = '" + storeyEsc + "' AND ifc_class IN (" + classIn + ")"
+        ).map(function(r) { return r[0]; });
+      }
+
+      if (guids.length > 0) {
         _phases.push({
           name: b.name + ' / ' + tierNames[tier],
           disc: tier <= 3 ? 'ARC' : (b.type === 'MEP' ? 'MEP' : 'ARC'),
           ifcClass: tierNames[tier],
-          guids: b[tier],
+          guids: guids,
           tier: tier,
           floor: b.name,
           floorType: b.type
