@@ -1798,7 +1798,7 @@ function _scaleMeshFromCommand(cmd) {
     mat.elements[scaleIdx] = cmd.newScale;
     if (cmd.translateDelta) mat.elements[matIdx] += cmd.translateDelta;
     slot.mesh.setMatrixAt(slot.slotId, mat);
-    slot.mesh.instanceMatrix.needsUpdate = true;
+    if (slot.mesh.instanceMatrix) slot.mesh.instanceMatrix.needsUpdate = true;
     return;
   }
   var inst = _guidToInstance[cmd.guid];
@@ -1808,7 +1808,7 @@ function _scaleMeshFromCommand(cmd) {
     imat.elements[scaleIdx] = cmd.newScale;
     if (cmd.translateDelta) imat.elements[matIdx] += cmd.translateDelta;
     inst.mesh.setMatrixAt(inst.index, imat);
-    inst.mesh.instanceMatrix.needsUpdate = true;
+    if (inst.mesh.instanceMatrix) inst.mesh.instanceMatrix.needsUpdate = true;
     return;
   }
 }
@@ -1931,7 +1931,7 @@ function _translateMesh(guid, axis, delta) {
     slot.mesh.getMatrixAt(slot.slotId, mat);
     mat.elements[matIdx] += delta;
     slot.mesh.setMatrixAt(slot.slotId, mat);
-    slot.mesh.instanceMatrix.needsUpdate = true;
+    if (slot.mesh.instanceMatrix) slot.mesh.instanceMatrix.needsUpdate = true;
     return;
   }
   var inst = _guidToInstance[guid];
@@ -1940,7 +1940,7 @@ function _translateMesh(guid, axis, delta) {
     inst.mesh.getMatrixAt(inst.index, imat);
     imat.elements[matIdx] += delta;
     inst.mesh.setMatrixAt(inst.index, imat);
-    inst.mesh.instanceMatrix.needsUpdate = true;
+    if (inst.mesh.instanceMatrix) inst.mesh.instanceMatrix.needsUpdate = true;
     return;
   }
   // Single-mesh path
