@@ -293,6 +293,9 @@ function setupScene(A) {
       console.warn('[S203] §CACHE_DB_OPEN_FAIL — IDB unavailable');
     }
 
+    // import:// URLs live only in IndexedDB — no network fallback
+    if (url.startsWith('import://')) throw new Error('DB not found in cache: ' + url);
+
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
     const contentLength = parseInt(resp.headers.get('Content-Length') || '0', 10);
