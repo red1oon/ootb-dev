@@ -272,9 +272,14 @@ function nextPhase(A) {
   _materializePhase(A, phase);
   _kinEngineDirty = true; // §S270: new elements revealed, rebuild engine on next drag
 
+  // §S270: Ceiling grid auto-placement — when Phase 3 (Finishes) reveals IfcRoof,
+  // auto-place a Y-axis grid line at eave height for roof lift handle.
+  if (phase.tier === 3) {
+    _autoCeilingGrid(A, phase);
+  }
+
   // §17.9B: No auto-grid. User taps wall/element → grid line appears.
   // Auto-grid removed: was flooding canvas with 200+ lines from hospital walls.
-  // _autoGridFromPhase(A, phase) — disabled, kept for reference
   // Grid lines added only via user click (handleElementPick) or Rosetta drag.
 
   // Update HUD with new grid bays + element count + timeline
@@ -284,6 +289,114 @@ function nextPhase(A) {
   console.log('§DOC_NEXT phase=' + (_phaseIndex + 1) + '/' + filtered.length +
     ' disc=' + (phase.disc || '?') + ' name=' + phase.name +
     ' elements=' + phase.guids.length + ' gridMode=user-pick');
+}
+
+/**
+ * _autoCeilingGrid(A, phase) — §S270 §17.10.2: auto-place Y-axis grid at roof eave.
+ * When Tier 3 (Finishes) is revealed and contains IfcRoof elements, scan their
+ * vertex positions to find eaveY = min(vertex.y), then place a horizontal grid
+ * marker at that height. This gives the user a handle to lift the ceiling.
+ *
+ * Note: The current grid UI only renders X/Z lines. The Y-axis grid line is
+ * stored as a _ceilingGridY value and will be available to the engine when
+ * _collectGridLines() is called. A visible horizontal plane indicator is
+ * rendered as a translucent disc at the eave height.
+ */
+var _ceilingGridY = null; // Y-axis grid position (eave height), null = not placed
+
+function _autoCeilingGrid(A, phase) {
+  if (_ceilingGridY !== null) return; // already placed
+  if (!A.scene) return;
+
+  // Check if this phase has IfcRoof elements
+  var hasRoof = false;
+  if (A.db && A.dbQuery && phase.guids.length) {
+    for (var batch = 0; batch < phase.guids.length; batch += 200) {
+      var chunk = phase.guids.slice(batch, batch + 200);
+      var inClause = chunk.map(function(g) { return "'" + g.replace(/'/g, "''") + "'"; }).join(',');
+      var rows = A.dbQuery(
+        "SELECT COUNT(*) FROM elements_meta WHERE ifc_class = 'IfcRoof' AND guid IN (" + inClause + ")"
+      );
+      if (rows.length && rows[0][0] > 0) { hasRoof = true; break; }
+    }
+  }
+  if (!hasRoof) return;
+
+  // Scan roof meshes for eave Y (minimum vertex Y across all roof geometries)
+  var eaveY = Infinity;
+  var roofCount = 0;
+  A.scene.traverse(function(obj) {
+    if (!obj.isMesh || !obj.userData || !obj.userData.guid) return;
+    // Check if this mesh's guid is in the phase and is IfcRoof
+    var isRoofGuid = false;
+    for (var pi = 0; pi < phase.guids.length; pi++) {
+      if (obj.userData.guid === phase.guids[pi]) { isRoofGuid = true; break; }
+    }
+    if (!isRoofGuid) return;
+
+    // Read vertex positions
+    var geo = obj.geometry;
+    if (!geo || !geo.attributes || !geo.attributes.position) return;
+    var positions = geo.attributes.position.array;
+    var nVerts = positions.length / 3;
+    for (var vi = 0; vi < nVerts; vi++) {
+      var vy = positions[vi * 3 + 1]; // Y = height in Three.js
+      if (vy < eaveY) eaveY = vy;
+    }
+    roofCount++;
+  });
+
+  // Also check BatchedMesh — read center Y from matrix position as fallback
+  if (roofCount === 0 && A.db && A.dbQuery) {
+    var roofGuids = [];
+    for (var rb = 0; rb < phase.guids.length; rb += 200) {
+      var rchunk = phase.guids.slice(rb, rb + 200);
+      var rin = rchunk.map(function(g) { return "'" + g.replace(/'/g, "''") + "'"; }).join(',');
+      var rrows = A.dbQuery(
+        "SELECT guid, center_z FROM elements_meta m JOIN element_transforms t ON m.guid = t.guid " +
+        "WHERE m.ifc_class = 'IfcRoof' AND m.guid IN (" + rin + ")"
+      );
+      for (var rr = 0; rr < rrows.length; rr++) {
+        roofGuids.push(rrows[rr][0]);
+        // IFC Z → Three.js Y
+        var threeY = rrows[rr][1] || 0;
+        if (threeY < eaveY) eaveY = threeY;
+      }
+    }
+    roofCount = roofGuids.length;
+  }
+
+  if (roofCount === 0 || !isFinite(eaveY)) return;
+
+  _ceilingGridY = eaveY;
+  _kinEngineDirty = true; // engine needs to know about the new Y-axis grid
+
+  // Render a visual indicator — translucent disc at eave height
+  if (_gridGroup && typeof THREE !== 'undefined') {
+    var envWidth = 0, envDepth = 0;
+    if (A._docEnv) {
+      envWidth = (A._docEnv.maxX - A._docEnv.minX) || 20;
+      envDepth = (A._docEnv.maxZ - A._docEnv.minZ) || 20;
+    }
+    var planeGeo = new THREE.PlaneGeometry(envWidth * 1.2, envDepth * 1.2);
+    var planeMat = new THREE.MeshBasicMaterial({
+      color: 0x00bcd4, transparent: true, opacity: 0.08, side: THREE.DoubleSide
+    });
+    var planeMesh = new THREE.Mesh(planeGeo, planeMat);
+    planeMesh.rotation.x = -Math.PI / 2; // horizontal
+    planeMesh.position.set(
+      A._docEnv ? (A._docEnv.minX + A._docEnv.maxX) / 2 : 0,
+      eaveY,
+      A._docEnv ? (A._docEnv.minZ + A._docEnv.maxZ) / 2 : 0
+    );
+    planeMesh.userData = { ceilingGrid: true };
+    _gridGroup.add(planeMesh);
+  }
+
+  if (window.APP && APP.status) {
+    APP.status.textContent = 'Ceiling grid placed at Y=' + eaveY.toFixed(2) + 'm — drag to lift roof';
+  }
+  console.log('§CEILING_GRID_AUTO eaveY=' + eaveY.toFixed(3) + ' roofs=' + roofCount);
 }
 
 /**
@@ -1069,7 +1182,16 @@ function handleRosettaDrag(axis, position, A) {
         }), null, null);
       } catch(e) { /* kernel_ops optional */ }
     }
-    console.log('§DOC_ROSETTA_PLACE axis=' + axis + ' pos=' + position.toFixed(3) + 'm');
+    _kinEngineDirty = true; // new grid line → rebuild engine
+    var placedLabel = axis === 'X'
+      ? _xLabels[_xLabels.length - 1]
+      : _zLabels[_zLabels.length - 1];
+    if (window.APP && APP.status) {
+      APP.status.textContent = 'Rosetta placed grid ' + (axis === 'X' ? placedLabel : placedLabel) +
+        ' at ' + (axis === 'X' ? 'X' : 'Z') + '=' + position.toFixed(2) + 'm — ready to drag';
+    }
+    console.log('§DOC_ROSETTA_PLACE axis=' + axis + ' label=' + placedLabel +
+      ' pos=' + position.toFixed(3) + 'm');
     return true;
   }
   return false;
@@ -1302,7 +1424,8 @@ function _initInteraction(A) {
       if (window.APP && APP.status) {
         var lbl2 = axis === 'X' ? _xLabels[idx] : _zLabels[idx];
         var dir = axis === 'X' ? 'left/right' : 'forward/back';
-        APP.status.textContent = 'Grid ' + lbl2 + ' selected — click again to drag ' + dir;
+        var attachInfo = _getGridAttachInfo(lbl2);
+        APP.status.textContent = 'Grid ' + lbl2 + ' selected' + attachInfo + ' — click again to drag ' + dir;
       }
       console.log('§DOC_GRID_SELECT mode=drag axis=' + axis + ' idx=' + idx);
     }
@@ -1371,6 +1494,13 @@ function _initInteraction(A) {
 
       // §S267: Recompose elements after grid drag
       recomposeAfterGridDrag(A);
+
+      // §S270: Status feedback after drag
+      if (window.APP && APP.status) {
+        var moveLbl = axis === 'X' ? _xLabels[idx] : _zLabels[idx];
+        APP.status.textContent = 'Grid ' + moveLbl + ' moved ' +
+          (delta >= 0 ? '+' : '') + delta.toFixed(2) + 'm — elements recomposed';
+      }
     }
 
     _deselectGrid(A);
@@ -1425,6 +1555,26 @@ function _highlightGrid(A, axis, idx, color) {
       }
     }
   });
+}
+
+/**
+ * _getGridAttachInfo(gridLabel) — return a brief status string showing what's
+ * attached to a grid line. Uses the engine's attach map if available.
+ * e.g. " (5 walls, 2 slabs)" or "" if engine not built yet.
+ */
+function _getGridAttachInfo(gridLabel) {
+  if (!_kinEngine) return '';
+  var map = _kinEngine.getAttachMap();
+  var items = map[gridLabel];
+  if (!items || !items.length) return ' (no attached elements)';
+  var counts = {};
+  for (var i = 0; i < items.length; i++) {
+    var rel = items[i].relation;
+    counts[rel] = (counts[rel] || 0) + 1;
+  }
+  var parts = [];
+  for (var k in counts) parts.push(counts[k] + ' ' + k);
+  return ' (' + parts.join(', ') + ')';
 }
 
 function _deselectGrid(A) {
@@ -1733,6 +1883,10 @@ function _collectGridLines() {
       axis: 'z',
       pos: _gridOriginals.z[zi]
     });
+  }
+  // §S270: Y-axis ceiling grid
+  if (_ceilingGridY !== null) {
+    lines.push({ id: 'CEIL', axis: 'y', pos: _ceilingGridY });
   }
   return lines;
 }
