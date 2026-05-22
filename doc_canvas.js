@@ -1619,14 +1619,9 @@ function recomposeAfterGridDrag(A) {
                  deltas.z.some(function(d) { return Math.abs(d.delta) > 0.01; });
   if (!anyDelta) return;
 
-  // Path A: OOTB — verb expansion via BOMWalker + VerbExpand
-  var _recompBomDb = A._bomDb || A.db;
-  if (_recompBomDb && window.BOMWalker && window.VerbExpand) {
-    _recomposeOOTB(A, deltas);
-    return;
-  }
-
-  // Path B: IFC Drop — delta from nearest grid line
+  // §S267: Apply nearest-grid-delta to all visible elements.
+  // Same logic for OOTB and IFC Drop — shift meshes by nearest grid line's delta.
+  // Future: OOTB verb re-expansion for tile count recalculation (S268).
   _recomposeIFCDrop(A, deltas);
 }
 
