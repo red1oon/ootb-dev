@@ -930,6 +930,8 @@ function setupPanels(A) {
           }
           // Activate Doc canvas after BOM is ready
           if (A._bom && window.DocCanvas) DocCanvas.activate(A);
+          // §S267: Lazy-fetch BOM.db for verb expansion (OOTB fleet only)
+          _fetchBomDb(A, bld);
         });
       }
     }
@@ -980,6 +982,88 @@ function setupPanels(A) {
   };
 
   // Register static panels immediately (don't wait for building to load)
+  // §S267: Lazy-fetch BOM.db for OOTB fleet buildings (verb expansion)
+  // BOM.db lives at buildings/{PREFIX}_BOM.db alongside the extracted DB.
+  // Fetched once on Red Pill press, opened via sql.js, stored on A._bomDb.
+  // IFC Drop buildings won't have BOM.db — 404 is expected, silently ignored.
+  var BOM_IDB_STORE = 'bim_ootb_bomdb';
+  function _fetchBomDb(A, buildingName) {
+    if (A._bomDb) return; // already loaded
+    if (!buildingName || !window.initSqlJs) return;
+
+    // Derive prefix: first 2 chars uppercase (HITOS→HI, Terminal→TE, etc.)
+    // Or use full building name if no pattern match
+    var prefix = buildingName.replace(/_extracted$/, '').replace(/_meta$/, '');
+
+    // Try IndexedDB cache first
+    _idbGet(BOM_IDB_STORE, prefix + '_BOM', function(cached) {
+      if (cached) {
+        _openBomDb(A, cached, prefix, 'cache');
+        return;
+      }
+      // Resolve URL: same base as building DB, but _BOM.db suffix
+      var dbUrl = A.DB_URL || '';
+      var bomUrl = '';
+      if (dbUrl.indexOf('buildings/') !== -1) {
+        bomUrl = dbUrl.replace(/\/[^/]+$/, '/' + prefix + '_BOM.db');
+      } else if (dbUrl.indexOf('objectstorage') !== -1) {
+        bomUrl = dbUrl.replace(/\/[^/]+$/, '/' + prefix + '_BOM.db');
+      } else {
+        bomUrl = 'buildings/' + prefix + '_BOM.db';
+      }
+      console.log('§BOM_DB_FETCH url=' + bomUrl);
+      fetch(bomUrl).then(function(resp) {
+        if (!resp.ok) {
+          console.log('§BOM_DB_FETCH 404 — no BOM.db for ' + prefix + ' (IFC Drop path)');
+          return;
+        }
+        return resp.arrayBuffer();
+      }).then(function(buf) {
+        if (!buf) return;
+        // Cache in IndexedDB
+        _idbPut(BOM_IDB_STORE, prefix + '_BOM', new Uint8Array(buf));
+        _openBomDb(A, new Uint8Array(buf), prefix, 'fetch');
+      }).catch(function(e) {
+        console.log('§BOM_DB_FETCH err=' + e.message);
+      });
+    });
+  }
+
+  function _openBomDb(A, buf, prefix, source) {
+    initSqlJs({ locateFile: function(f) { return 'lib/' + f; } }).then(function(SQL) {
+      A._bomDb = new SQL.Database(buf);
+      console.log('§BOM_DB_READY prefix=' + prefix + ' source=' + source +
+        ' size=' + (buf.byteLength / 1024).toFixed(0) + 'KB');
+    }).catch(function(e) {
+      console.warn('§BOM_DB_OPEN err=' + e.message);
+    });
+  }
+
+  // Minimal IndexedDB get/put for BOM.db cache
+  function _idbGet(store, key, cb) {
+    try {
+      var req = indexedDB.open(store, 1);
+      req.onupgradeneeded = function(e) { e.target.result.createObjectStore('data'); };
+      req.onsuccess = function(e) {
+        var tx = e.target.result.transaction('data', 'readonly');
+        var get = tx.objectStore('data').get(key);
+        get.onsuccess = function() { cb(get.result || null); };
+        get.onerror = function() { cb(null); };
+      };
+      req.onerror = function() { cb(null); };
+    } catch(e) { cb(null); }
+  }
+  function _idbPut(store, key, val) {
+    try {
+      var req = indexedDB.open(store, 1);
+      req.onupgradeneeded = function(e) { e.target.result.createObjectStore('data'); };
+      req.onsuccess = function(e) {
+        var tx = e.target.result.transaction('data', 'readwrite');
+        tx.objectStore('data').put(val, key);
+      };
+    } catch(e) { /* ignore */ }
+  }
+
   // These exist in HTML from page load — section, sunglasses, toolbar
   setTimeout(function() {
     if (A._wireListKeyNav) A._wireListKeyNav();

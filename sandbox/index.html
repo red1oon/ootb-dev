@@ -507,6 +507,17 @@
                border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer">
   −
 </button>
+<!-- S266: Timeline slider — Doc mode phase scrubber -->
+<div id="doc-timeline" style="display:none;position:fixed;bottom:52px;left:10%;right:10%;z-index:11;
+  background:rgba(10,10,30,0.6);border-radius:8px;padding:6px 12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="tl-back" style="background:none;border:none;color:#4fc3f7;font-size:16px;cursor:pointer;padding:2px 6px" title="Previous phase">◀</button>
+    <input id="tl-slider" type="range" min="0" max="1" value="0" step="1"
+      style="flex:1;accent-color:#ff4444;height:6px;cursor:pointer">
+    <button id="tl-fwd" style="background:none;border:none;color:#4fc3f7;font-size:16px;cursor:pointer;padding:2px 6px" title="Next phase">▶</button>
+    <span id="tl-label" style="color:#ccc;font:11px monospace;min-width:80px;text-align:right">0 / 0</span>
+  </div>
+</div>
 <div id="status">v3 — <span data-trl="ui_initializing">Initializing...</span></div>
 <pre id="walk-log" style="display:none;position:fixed;bottom:0;left:0;right:0;max-height:200px;overflow:auto;background:#111;color:#0f0;font-size:10px;z-index:99;padding:4px;margin:0"></pre>
 <div id="section-slider-panel">
@@ -781,7 +792,9 @@
 <script src="grid_dim_chains.js?v=4" onerror="console.warn('[DimChains] grid_dim_chains.js skipped')"></script>
 <script src="kernel_ops.js?v=3" onerror="console.warn('[KernelOps] kernel_ops.js skipped')"></script>
 <script src="bom_extract.js?v=1" onerror="console.warn('[BOMExtract] bom_extract.js skipped')"></script>
-<script src="doc_canvas.js?v=3" onerror="console.warn('[DocCanvas] doc_canvas.js skipped')"></script>
+<script src="verb_expand.js?v=1" onerror="console.warn('[VerbExpand] verb_expand.js skipped')"></script>
+<script src="bom_walker.js?v=1" onerror="console.warn('[BOMWalker] bom_walker.js skipped')"></script>
+<script src="doc_canvas.js?v=4" onerror="console.warn('[DocCanvas] doc_canvas.js skipped')"></script>
 <script src="cost_panel.js?v=4" onerror="console.warn('[CostPanel] cost_panel.js skipped')"></script>
 <script src="grid_drag.js?v=6" onerror="console.warn('[GridDrag] grid_drag.js skipped')"></script>
 <script src="grid_scissors.js?v=2" onerror="console.warn('[GridScissors] grid_scissors.js skipped')"></script>

@@ -65,6 +65,18 @@ function buildImportDBs(SQL, data) {
   }
   stmtGeo.free();
 
+  // §S267: bom_tree — IFC parent→child relationships (IfcRelVoids/Fills/Aggregates)
+  if (data.bomTree && data.bomTree.length > 0) {
+    db.run('CREATE TABLE IF NOT EXISTS bom_tree (parent_guid TEXT NOT NULL, child_guid TEXT NOT NULL, rel_type TEXT NOT NULL, PRIMARY KEY (parent_guid, child_guid))');
+    var stmtBom = db.prepare('INSERT OR IGNORE INTO bom_tree VALUES (?,?,?)');
+    for (var bi = 0; bi < data.bomTree.length; bi++) {
+      var bt = data.bomTree[bi];
+      stmtBom.run([bt.parentGuid, bt.childGuid, bt.relType]);
+    }
+    stmtBom.free();
+    console.log('[S267] §BOM_TREE_TABLE rows=' + data.bomTree.length);
+  }
+
   db.run('COMMIT');
 
   console.log('[S220] §DB_BUILD single_db: elements=' + data.elements.length + ' transforms=' + data.transforms.length + ' instances=' + data.geometries.length + ' geometries=' + data.geometries.length);

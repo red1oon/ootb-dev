@@ -246,6 +246,59 @@ self.onmessage = async function(e) {
       } catch(e) { /* skip */ }
     }
 
+    // §S267: Extract IFC relationships for bom_tree (parent→child hierarchy)
+    // Implementing S267_BOM_TREE_EXTRACTION.md §B — Witness: W-BOM-IFC-REL
+    const bomTreeRels = [];
+    const _idToGuid = {}; // expressID → guid, built later after elements collected
+
+    // IfcRelVoidsElement: wall → opening
+    try {
+      var voidRels = ifcApi.GetLineIDsWithType(modelID, WebIFC.IFCRELVOIDSELEMENT);
+      for (let vi = 0; vi < voidRels.size(); vi++) {
+        try {
+          var vr = ifcApi.GetLine(modelID, voidRels.get(vi));
+          var parentId = vr.RelatingBuildingElement ? vr.RelatingBuildingElement.value : null;
+          var childId = vr.RelatedOpeningElement ? vr.RelatedOpeningElement.value : null;
+          if (parentId && childId) bomTreeRels.push({ parentId: parentId, childId: childId, relType: 'VOIDS' });
+        } catch(e) { /* skip */ }
+      }
+    } catch(e) { /* IFCRELVOIDSELEMENT not in schema */ }
+
+    // IfcRelFillsElement: opening → door/window
+    try {
+      var fillRels = ifcApi.GetLineIDsWithType(modelID, WebIFC.IFCRELFILLSELEMENT);
+      for (let fi = 0; fi < fillRels.size(); fi++) {
+        try {
+          var fr = ifcApi.GetLine(modelID, fillRels.get(fi));
+          var openingId = fr.RelatingOpeningElement ? fr.RelatingOpeningElement.value : null;
+          var fillingId = fr.RelatedBuildingElement ? fr.RelatedBuildingElement.value : null;
+          if (openingId && fillingId) bomTreeRels.push({ parentId: openingId, childId: fillingId, relType: 'FILLS' });
+        } catch(e) { /* skip */ }
+      }
+    } catch(e) { /* IFCRELFILLSELEMENT not in schema */ }
+
+    // IfcRelAggregates: assembly → parts
+    try {
+      var aggRels = ifcApi.GetLineIDsWithType(modelID, WebIFC.IFCRELAGGREGATES);
+      for (let ai = 0; ai < aggRels.size(); ai++) {
+        try {
+          var ar = ifcApi.GetLine(modelID, aggRels.get(ai));
+          var relObj = ar.RelatingObject ? ar.RelatingObject.value : null;
+          if (relObj && ar.RelatedObjects) {
+            for (let ri = 0; ri < ar.RelatedObjects.length; ri++) {
+              var relChild = ar.RelatedObjects[ri].value;
+              if (relChild) bomTreeRels.push({ parentId: relObj, childId: relChild, relType: 'AGGREGATES' });
+            }
+          }
+        } catch(e) { /* skip */ }
+      }
+    } catch(e) { /* IFCRELAGGREGATES not in schema */ }
+
+    console.log('[S267] §BOM_TREE_RELS voids=' +
+      bomTreeRels.filter(r => r.relType === 'VOIDS').length +
+      ' fills=' + bomTreeRels.filter(r => r.relType === 'FILLS').length +
+      ' aggregates=' + bomTreeRels.filter(r => r.relType === 'AGGREGATES').length);
+
     // Collect product types to extract
     const PRODUCT_TYPES = [
       // ARC
@@ -314,6 +367,20 @@ self.onmessage = async function(e) {
         } catch(e) { /* skip unreadable */ }
       }
     }
+
+    // §S267: Resolve bomTreeRels expressIDs → GUIDs
+    for (var ei = 0; ei < elements.length; ei++) {
+      _idToGuid[elements[ei].expressID] = elements[ei].guid;
+    }
+    var bomTree = [];
+    for (var bi = 0; bi < bomTreeRels.length; bi++) {
+      var pGuid = _idToGuid[bomTreeRels[bi].parentId];
+      var cGuid = _idToGuid[bomTreeRels[bi].childId];
+      if (pGuid && cGuid) {
+        bomTree.push({ parentGuid: pGuid, childGuid: cGuid, relType: bomTreeRels[bi].relType });
+      }
+    }
+    console.log('[S267] §BOM_TREE_RESOLVED raw=' + bomTreeRels.length + ' resolved=' + bomTree.length);
 
     console.log('[S220] §ELEMENTS_FOUND count=' + elements.length + ' storeys=' + Object.keys(storeyMap).length);
     console.log('[S252] §ELEM_COLORS icm_mapped=' + Object.keys(_colorMap).length + '/' + elements.length);
@@ -530,6 +597,7 @@ self.onmessage = async function(e) {
       },
       elements: renderableElements,
       geometries: geometries,
+      bomTree: bomTree,  // §S267: parent→child IFC relationships for bom_tree table
       transforms: transforms,
     };
 

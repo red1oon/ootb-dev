@@ -8,7 +8,7 @@
 // Cache-first for heavy assets (.wasm, images). DB files skip SW (IndexedDB handles them).
 //
 // DEPLOY: bump CACHE_VERSION on every OCI upload. Old caches are purged on activate.
-const CACHE_VERSION = 'v435';
+const CACHE_VERSION = 'v436';
 const CACHE_NAME = 'bim-ootb-' + CACHE_VERSION;
 
 // Local copies of vendor libs — single-origin, no CDN dependency
@@ -88,6 +88,12 @@ const PRECACHE_ASSETS = [
   'grid_scissors.js',
   'grid_overlay.js',
   'grid_assembler.js',
+  // S266/S267: Doc pill + BOM modules
+  'bom_extract.js',
+  'verb_expand.js',
+  'bom_walker.js',
+  'doc_canvas.js',
+  'route_walker.js',
   // Feature modules loaded by index.html
   'kernel_ops.js',
   'ad_parser.js',

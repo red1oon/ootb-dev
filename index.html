@@ -1,856 +1,1758 @@
-<!-- BIM OOTB v3 — modular viewer -->
-<!-- Landing page: landing.html uploads as index.html (links here) -->
-<!-- JS modules: config.js, scene.js, streaming.js, panels.js, tools.js, picking.js, tour.js, clash_report.js, clash_snag.js, measure.js, sitecam.js, issues.js, walk.js, city.js, main.js -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BIM OOTB v3 — DEV</title>
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4fc3f7">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<title>BIM OOTB — DEV</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-  #canvas { width: 100vw; height: 100vh; display: block; touch-action: none; }
-  #hud {
-    position: fixed; top: 16px; left: 16px; z-index: 10;
-    background: rgba(10,10,30,0.50); border-radius: 8px; padding: 8px 12px;
-    font-size: 12px; line-height: 1.5;
-    border: 1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  body {
+    background: #f5f0e8; color: #1a1a2e;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
   }
-  #hud h2 { font-size: 13px; margin-bottom: 4px; color: #4fc3f7; }
-  #hud .stat { color: #ccc; }
-  #hud .stat b { color: #fff; }
-  /* #search-box styles moved to Icon Pill section below (S265) */
-  .bld-card {
-    padding: 3px 6px; margin: 2px 0; cursor: pointer; border-radius: 3px;
-    font-size: 11px; color: #ccc; display: flex; justify-content: space-between;
+  .header {
+    text-align: center; padding: 30px 20px 10px;
   }
-  .bld-card:hover { background: rgba(79,195,247,0.15); color: #4fc3f7; }
-  .bld-card .cnt { color: #888; font-size: 10px; }
-  #status {
-    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 10;
-    background: rgba(10,10,30,0.50); border-radius: 6px; padding: 8px 20px;
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    font-size: 13px; color: #4fc3f7;
+  .header h1 {
+    font-size: 28px; color: #0277bd; margin-bottom: 4px;
+    letter-spacing: 1px;
   }
-  .disc-bar { display: inline-block; height: 10px; border-radius: 2px; margin-right: 1px; }
-  .panel-toggle {
-    cursor: pointer; color: #888; font-size: 14px; font-weight: bold;
-    user-select: none; float: right;
+  .header .tagline {
+    font-size: 14px; color: #888; font-style: italic;
   }
-  .panel-toggle:hover { color: #4fc3f7; }
-  .panel-body { transition: max-height 0.2s ease, opacity 0.2s ease; overflow: hidden; }
-  .panel-body.collapsed { max-height: 0 !important; opacity: 0; padding: 0; }
-  .swipe-hidden { display: none !important; }
-  /* ── S265 Phase 5: .bim-panel — unified glass panel styling ── */
-  .bim-panel {
-    position: fixed; z-index: 200;
-    background: rgba(10,10,30,0.50); border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    font-family: system-ui, -apple-system, sans-serif; font-size: 12px;
-    color: #e0e0e0; padding: 10px 14px;
-    pointer-events: auto;
+  /* Loading overlay */
+  .loading {
+    text-align: center; padding: 60px 20px;
   }
-  .bim-panel .bim-panel-close {
-    position: absolute; top: 6px; right: 8px;
-    background: none; border: none; color: #888; font-size: 18px;
-    cursor: pointer; padding: 2px 6px; line-height: 1; border-radius: 4px;
+  .loading .spinner {
+    display: inline-block; width: 30px; height: 30px;
+    border: 3px solid #ccc; border-top-color: #0277bd;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
   }
-  .bim-panel .bim-panel-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
-  .bim-panel .bim-slider-row {
-    display: flex; align-items: center; gap: 6px; margin: 3px 0;
-  }
-  .bim-panel .bim-slider-row button {
-    width: 28px; height: 28px; border: none; border-radius: 6px;
-    background: transparent; color: #ddd; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; padding: 0;
-    flex-shrink: 0;
-  }
-  .bim-panel .bim-slider-row button:hover { background: rgba(255,255,255,0.1); }
-  .bim-panel .bim-slider-row button.active { color: #4fc3f7; }
-  .bim-panel .bim-slider-row button svg { width: 18px; height: 18px; pointer-events: none; }
-  .bim-panel .bim-slider-row input[type=range] {
-    flex: 1; accent-color: #4fc3f7; cursor: pointer; min-width: 0;
-  }
-  .bim-panel .bim-slider-val {
-    width: 36px; text-align: right; font-size: 11px; color: #4fc3f7;
-    flex-shrink: 0; opacity: 0; transition: opacity 0.3s;
-  }
-  .bim-panel .bim-slider-val.visible { opacity: 1; }
-  @media (max-width: 600px) {
-    .bim-panel { border-radius: 12px; }
-    .bim-panel .bim-panel-close { font-size: 22px; padding: 8px 12px; min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-    .bim-panel .bim-slider-row button { width: 44px; height: 44px; }
-    .bim-panel .bim-slider-row button svg { width: 22px; height: 22px; }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading .elapsed { color: #666; font-size: 12px; margin-top: 8px; }
 
-  /* S265 Phase 4: HUD accordion sections (storey + disc inside HUD) */
-  .hud-accordion { margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px; }
-  .hud-accordion-header { display: block; width: 100%; padding: 4px 0; color: #4fc3f7; font-size: 11px; cursor: pointer; user-select: none; }
-  .hud-accordion-header::before { content: '▸ '; font-size: 10px; }
-  .hud-accordion:has(.panel-body:not(.collapsed)) .hud-accordion-header::before { content: '▾ '; }
-  #hud #storey-body button, #hud #disc-body button {
-    display: block; width: 100%; text-align: left;
-    padding: 3px 8px; margin: 2px 0; background: #333; color: #ccc;
-    border: 1px solid #555; border-radius: 3px; cursor: pointer; font-size: 11px;
+  /* Building grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; padding: 16px 20px;
+    max-width: 1200px; margin: 0 auto;
   }
-  #hud #storey-body button:hover, #hud #disc-body button:hover { background: #444; color: #4fc3f7; }
-  #hud #storey-body button.active, #hud #disc-body button.active { background: #4fc3f7; color: #000; border-color: #4fc3f7; }
-  #hud #disc-body button { opacity: 0.3; text-decoration: line-through; }
-  #hud #disc-body button.active { opacity: 1.0; text-decoration: none; }
-  #info-panel {
-    position: fixed; bottom: 50px; right: 70px; z-index: 10;
-    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 12px 16px;
-    border: 1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    font-size: 12px; line-height: 1.6; min-width: 240px; max-width: 320px;
-    display: none; pointer-events: auto;
-  }
-  #info-panel .label { color: #888; }
-  #info-panel .value { color: #fff; }
-  /* S265: standalone #storey-panel and #disc-panel CSS removed — now inside #hud accordion */
-
-  /* ── Icon Pill: vertical right edge, always visible ── */
-  #icon-pill {
-    position: fixed; right: 16px; top: 50%; transform: translateY(-50%); z-index: 500;
-    display: flex; flex-direction: column; gap: 4px;
-    background: rgba(10,10,30,0.50); border-radius: 24px; padding: 8px 6px;
+  .card {
+    background: #1a1a2e;
     border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 14px 16px;
+    cursor: pointer; transition: all 0.15s;
   }
-  #icon-pill button {
-    width: 36px; height: 36px; border: none; border-radius: 50%;
-    background: transparent; color: #fff; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0; transition: background 0.15s;
+  .card:hover {
+    background: #1e2840;
+    border-color: rgba(79,195,247,0.3);
+    transform: translateY(-1px);
   }
-  #icon-pill button:hover { background: rgba(255,255,255,0.1); }
-  #icon-pill button.active { background: #4fc3f7; color: #000; }
-  #icon-pill button svg { width: 20px; height: 20px; pointer-events: none; }
-  /* S266: Doc pill — red glass background, white icons */
-  #icon-pill.doc-mode { background: rgba(200,30,30,0.45); border-color: rgba(255,100,100,0.35); }
-  #icon-pill.doc-mode button { color: #fff; }
-  #icon-pill.doc-mode button:hover { background: rgba(255,255,255,0.2); }
-  #icon-pill.doc-mode button.active { background: rgba(255,255,255,0.3); color: #fff; }
+  .card .name { font-size: 15px; font-weight: 600; color: #e0e0e0; margin-bottom: 6px; }
+  .card .meta { font-size: 12px; color: #888; line-height: 1.6; }
+  .card .meta b { color: #ccc; }
+  .card .instances {
+    display: inline-block; background: #0277bd; color: #000;
+    font-size: 11px; font-weight: 700; padding: 1px 6px;
+    border-radius: 3px; margin-left: 6px;
+  }
+  .card .disc-bars { margin-top: 6px; }
+  .card .disc-bar {
+    display: inline-block; height: 6px; border-radius: 2px;
+    margin-right: 1px; min-width: 3px;
+  }
+  .card .open-btn {
+    display: block; width: 100%; margin-top: 10px;
+    padding: 6px; background: rgba(79,195,247,0.15);
+    border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 4px; color: #0277bd;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .card .open-btn:hover { background: rgba(79,195,247,0.3); }
+  .card.viewed { border-color: rgba(68,204,68,0.3); }
+  .card.viewed .name { color: #44cc44; }
+  /* S229: Export triangle */
+  .card { position: relative; }
+  .export-triangle {
+    position: absolute; top: 0; right: 0;
+    width: 0; height: 0;
+    border-top: 36px solid #0277bd;
+    border-left: 36px solid transparent;
+    cursor: pointer; opacity: 0.7;
+    transition: opacity 0.15s;
+    border-radius: 0 8px 0 0;
+  }
+  .export-triangle:hover { opacity: 1; }
+  .export-triangle .arrow {
+    position: absolute; top: -32px; right: 2px;
+    color: #1a1a2e; font-size: 14px;
+    pointer-events: none;
+  }
+  .export-flyout {
+    position: absolute; top: 40px; right: 4px; z-index: 50;
+    background: #1a1a2e; border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 8px; padding: 12px 16px; min-width: 200px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .export-flyout label { display: block; color: #ccc; font-size: 12px; cursor: pointer; padding: 4px 0; }
+  .export-flyout label:hover { color: #0277bd; }
+  .export-flyout input[type=radio] { margin-right: 6px; }
+  .export-flyout .ef-row { display: flex; gap: 6px; margin-top: 10px; }
+  .export-flyout .ef-btn {
+    flex: 1; padding: 6px 12px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-weight: 600; border: 1px solid;
+  }
 
-  /* ── Overflow menu: dropdown from pill, hidden by default ── */
-  #search-box {
-    position: fixed; top: 50%; right: 62px; transform: translateY(-50%); z-index: 490;
-    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    display: none; max-width: 280px;
+  /* Open tabs tracker */
+  .tabs-panel {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 20px; display: none; z-index: 100;
   }
-  #search-box.overflow-open { display: block; }
-  #search-box input {
-    background: #222; color: #fff; border: 1px solid #555; border-radius: 3px;
-    padding: 4px 8px; font-size: 12px; width: 160px; outline: none;
+  .tabs-panel .tab-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .tabs-panel .tab-list { display: flex; gap: 8px; overflow-x: auto; }
+  .tabs-panel .tab-item {
+    padding: 4px 12px; background: rgba(79,195,247,0.15);
+    border: 1px solid rgba(79,195,247,0.3); border-radius: 4px;
+    color: #0277bd; font-size: 12px; cursor: pointer;
+    white-space: nowrap; flex-shrink: 0;
   }
-  #search-box input:focus { border-color: #4fc3f7; }
+  .tabs-panel .tab-item:hover { background: rgba(79,195,247,0.3); }
 
-  /* ── Overflow scrim ── */
-  #overflow-scrim {
-    display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 480; background: transparent;
-  }
-  #overflow-scrim.active { display: block; }
-
-  /* ── Overflow group labels ── */
-  .overflow-group { padding: 4px 8px 2px; font-size: 9px; text-transform: uppercase;
-    letter-spacing: 1px; color: #666; margin-top: 4px; }
-  .overflow-group:first-child { margin-top: 0; }
-  #search-body button:hover { background: rgba(255,255,255,0.1) !important; }
-  #search-body button.active { background: rgba(79,195,247,0.25) !important; color: #4fc3f7 !important; }
-
-  /* ── Measure labels ── */
-  .measure-label {
-    position: fixed; z-index: 12; pointer-events: none;
-    background: rgba(0,0,0,0.7); color: #4fc3f7; font-size: 12px;
-    padding: 2px 6px; border-radius: 3px; white-space: nowrap;
-    border: 1px solid rgba(79,195,247,0.4);
-    font-family: 'Segoe UI', sans-serif; font-weight: 600;
-    transform: translate(-50%, -50%);
+  /* Section headers */
+  .section-header {
+    padding: 16px 20px 4px; max-width: 1200px; margin: 0 auto;
+    font-size: 13px; color: #666; text-transform: uppercase;
+    letter-spacing: 1px; border-top: 1px solid rgba(0,0,0,0.08);
   }
 
-  /* ── Section Cut slider ── */
-  #section-slider-panel {
-    position: fixed; top: 56px; right: 16px; z-index: 10;
-    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 8px 14px;
-    border: 1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    display: none; min-width: 200px;
+  /* Footer */
+  .footer {
+    text-align: center; padding: 20px; font-size: 11px; color: #555;
+    padding-bottom: 60px; /* space for tabs panel */
   }
-  #section-slider-panel label { color: #4fc3f7; font-size: 12px; }
-  #section-slider-panel input[type=range] {
-    width: 100%; margin: 6px 0 2px; accent-color: #4fc3f7; cursor: pointer;
-  }
-  #section-slider-panel .section-val { color: #ccc; font-size: 11px; text-align: right; display: block; }
+  .footer a { color: #0277bd; text-decoration: none; }
 
-  /* ── Sunglass / Ambience slider — S265 Phase 5: uses .bim-panel class now ── */
-  /* Legacy ID overrides removed — styling from .bim-panel */
-
-  /* ── Site Camera (mobile only) ── */
-  #site-cam-btn {
-    display: none; position: fixed; top: 8px; right: 8px; z-index: 15;
-    padding: 10px 14px; background: #ff4444; color: #fff;
-    border: none; border-radius: 8px; font-size: 16px; font-weight: 700;
-    cursor: pointer; min-height: 44px;
-    box-shadow: 0 2px 8px rgba(255,68,68,0.4);
-  }
-  #site-cam-overlay {
-    display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 2000; background: #000; flex-direction: column;
-  }
-  #site-cam-overlay.active { display: flex; }
-  #site-cam-video { width: 100%; flex: 1; object-fit: cover; background: #000; }
-  #site-cam-bim-bar {
-    position: absolute; top: 0; left: 0; right: 0;
-    background: rgba(0,0,0,0.6); color: #fff; padding: 8px 12px;
-    font-size: 12px; line-height: 1.5; z-index: 2001;
-  }
-  #site-cam-bim-bar .cam-label { color: #4fc3f7; }
-  #site-cam-snap-btn {
-    position: absolute; bottom: 50%; left: 50%; transform: translate(-50%, 50%);
-    background: #ff4444; color: #fff; border-radius: 50%; width: 72px; height: 72px;
-    font-size: 28px; border: 4px solid rgba(255,255,255,0.5); cursor: pointer; z-index: 2001;
-    box-shadow: 0 4px 16px rgba(255,0,0,0.4);
-  }
-  #site-cam-preview {
-    display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 2100; background: #000; flex-direction: column; align-items: center; justify-content: center;
-  }
-  #site-cam-preview.active { display: flex; }
-  #site-cam-preview img { max-width: 100%; max-height: 70vh; border: 1px solid #333; }
-  #site-cam-preview-controls {
-    margin-top: 12px; margin-bottom: calc(env(safe-area-inset-bottom, 20px)); display: flex; gap: 12px;
-  }
-  #site-cam-preview-controls button {
-    padding: 12px 20px; border-radius: 8px; border: none; font-size: 16px;
-    cursor: pointer; min-height: 48px;
-  }
-  #site-cam-gps { position: absolute; bottom: calc(80px + env(safe-area-inset-bottom, 20px)); left: 12px; color: #0f0; font-size: 11px; z-index: 2001; text-shadow: 1px 1px 2px #000; }
-  #site-cam-compass { position: absolute; bottom: calc(96px + env(safe-area-inset-bottom, 20px)); left: 12px; color: #ff0; font-size: 11px; z-index: 2001; text-shadow: 1px 1px 2px #000; }
-  #site-cam-time { position: absolute; bottom: calc(80px + env(safe-area-inset-bottom, 20px)); right: 12px; color: #0f0; font-size: 11px; z-index: 2001; text-shadow: 1px 1px 2px #000; }
-
-
-  /* ── Issues Panel ── */
-  #issues-panel {
-    position: fixed; top: 60px; right: 70px; z-index: 50;
-    background: rgba(10,10,30,0.50); border-radius: 12px; padding: 12px 16px;
-    border: 1px solid rgba(255,255,255,0.15);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    pointer-events: auto;
-    font-size: 12px; line-height: 1.6; width: 340px; max-height: 70vh;
-    display: none; flex-direction: column;
-  }
-  #issues-panel.active { display: flex; }
-  #issues-panel h3 { color: #4fc3f7; font-size: 13px; margin-bottom: 6px; }
-  #issues-panel .issues-toolbar { display: flex; gap: 6px; margin-bottom: 8px; }
-  #issues-panel .issues-toolbar button {
-    padding: 4px 10px; background: #444; color: #fff; border: 1px solid #666;
-    border-radius: 4px; cursor: pointer; font-size: 11px;
-  }
-  #issues-panel .issues-toolbar button:hover { background: #555; }
-  #issues-list { overflow-y: auto; flex: 1; max-height: 55vh; }
-  .issue-card {
-    display: flex; gap: 8px; padding: 6px; margin: 4px 0; background: rgba(255,255,255,0.05);
-    border-radius: 4px; cursor: pointer; align-items: flex-start;
-  }
-  .issue-card:hover { background: rgba(79,195,247,0.15); }
-  .issue-card img { width: 64px; height: 48px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
-  .issue-card .issue-meta { font-size: 11px; color: #ccc; line-height: 1.4; }
-  .issue-card .issue-meta .issue-class { color: #4fc3f7; font-weight: 600; }
-  .issue-card .issue-meta .issue-ts { color: #888; font-size: 10px; }
-  #issue-detail-view {
-    display: none; flex-direction: column; align-items: center; gap: 8px;
-    overflow-y: auto; max-height: 70vh;
-  }
-  #issue-detail-view.active { display: flex; }
-  #issue-detail-view img { max-width: 100%; max-height: 40vh; border-radius: 4px; }
-  #issue-detail-view .detail-row { font-size: 11px; color: #ccc; width: 100%; }
-  #issue-detail-view .detail-row .label { color: #888; }
-  #issue-detail-view .detail-row .value { color: #fff; }
-  .issues-empty { color: #666; font-size: 12px; text-align: center; padding: 20px 0; }
-  /* ── Walk Mode (GPS blue dot, mobile only) ── */
-  #walk-mode-btn {
-    display: none; position: fixed; top: 8px; right: 110px; z-index: 15;
-    padding: 10px 14px; background: #2196f3; color: #fff;
-    border: none; border-radius: 8px; font-size: 16px; font-weight: 700;
-    cursor: pointer; min-height: 44px;
-    box-shadow: 0 2px 8px rgba(33,150,243,0.4);
-  }
-  #walk-mode-btn.active { background: #0d47a1; box-shadow: 0 0 16px rgba(33,150,243,0.8); }
-  #walk-anchor-prompt {
-    display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 25; background: rgba(0,0,0,0.85); border-radius: 12px; padding: 24px 32px;
-    border: 1px solid rgba(33,150,243,0.4); backdrop-filter: blur(8px);
-    text-align: center; color: #e0e0e0; font-size: 14px; max-width: 320px;
-  }
-  #walk-anchor-prompt h3 { color: #4fc3f7; margin-bottom: 12px; }
-  #walk-anchor-prompt button {
-    padding: 12px 24px; background: #2196f3; color: #fff; border: none;
-    border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 700;
-    margin: 8px 4px; min-height: 44px;
-  }
-  #walk-anchor-prompt button.cancel { background: #555; }
-
-  /* ── Mobile: tight panels, tap-to-toggle ── */
   @media (max-width: 600px) {
-    /* Icon pill: right edge, larger tap targets, TM hidden */
-    #icon-pill { right: 8px; padding: 6px 4px; }
-    #icon-pill button { width: 44px; height: 44px; }
-    #icon-pill button svg { width: 24px; height: 24px; }
-    /* Overflow: bottom drawer instead of dropdown */
-    #search-box { top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
-      transform: none !important; max-width: none; border-radius: 16px 16px 0 0;
-      padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 490 !important; }
-    #search-box input { display: none !important; }
-    #search-box button { padding: 6px 8px !important; font-size: 12px !important; min-height: 44px; }
-    #overflow-scrim.active { background: rgba(0,0,0,0.4); }
-
-    /* Ask + Walk: top-right, icons only, z20. Site hidden (enter via Walk). */
-    #site-cam-btn { display: none !important; }
-    #walk-mode-btn { display: inline-block !important; position: fixed !important; top: 8px !important; right: 8px !important; z-index: 20 !important; padding: 8px 12px; font-size: 18px; }
-    #nlp-btn { display: inline-block !important; position: fixed !important; top: 8px !important; right: 60px !important; left: auto !important; transform: none !important; z-index: 20 !important; padding: 6px 10px !important; font-size: 14px !important; min-height: 32px !important; min-width: 32px !important; }
-    /* §S265: NLP bar — fit beside HUD, don't span full width */
-    #nlp-bar { left: auto !important; right: 0 !important; max-width: 55vw !important; border-radius: 0 0 0 8px !important; }
-    #nlp-chips { left: auto !important; right: 0 !important; max-width: 55vw !important; }
-
-    /* S265 Phase 4: HUD is the single left panel — storey + disc inside as accordions */
-    #hud { top: 8px !important; bottom: auto !important; left: 8px; right: auto; max-width: 50vw; font-size: 12px; z-index: 19 !important; max-height: 70vh; overflow-y: auto; }
-    #hud h2 { font-size: 13px; }
-    #hud .stat { font-size: 11px; }
-    #hud #storey-body button, #hud #disc-body button { padding: 4px 8px; font-size: 12px; min-height: 32px; }
-    #hud .hud-accordion-header { font-size: 12px; padding: 6px 0; }
-
-    /* Info panel: right side — z15 */
-    #info-panel { bottom: 50px !important; left: auto !important; right: 8px !important; max-width: 180px; min-width: auto; font-size: 11px; z-index: 15 !important; }
-
-    /* Status bar: bottom, z10 */
-    #status { bottom: 8px; left: 8px; right: 8px; transform: none; text-align: center; font-size: 12px; z-index: 10 !important; }
-
-    /* Issues panel */
-    #issues-panel { top: 8px; left: 8px; right: 8px; width: auto; max-height: 80vh; }
-
-    /* Section slider */
-    #section-slider-panel { top: auto !important; bottom: 80px; left: 8px; right: 8px; min-width: auto; z-index: 12 !important; }
-    #sunglass-slider-panel { top: auto !important; bottom: 80px; left: 8px; right: 8px; min-width: auto; max-width: none; z-index: 200 !important; }
-
-    /* §S265: Larger close/× targets on mobile for all panels */
-    .panel-toggle { font-size: 22px !important; padding: 8px 12px !important; min-width: 44px; min-height: 44px; display: inline-flex !important; align-items: center; justify-content: center; }
-
-    /* Collapsed: tight, no blocking */
-    .panel-body.collapsed { max-height: 0 !important; padding: 0 !important; margin: 0 !important; pointer-events: none !important; overflow: hidden !important; opacity: 0 !important; }
-
-    /* Swipe-hidden: overrides everything */
-    .swipe-hidden, #hud.swipe-hidden, #search-box.swipe-hidden, #info-panel.swipe-hidden { display: none !important; }
-
-    /* Hide building list + search on mobile */
-    #building-list { display: none !important; }
-    .desktop-only { display: none !important; }
-    #panel-toggle-btn { display: block !important; }
-  }
-
-  /* ── Landscape: everything tight, persist Walk/Site ── */
-  @media (max-height: 500px) and (orientation: landscape) {
-    /* Icon pill: compact */
-    #icon-pill { right: 4px; padding: 4px 3px; gap: 2px; }
-    #icon-pill button { width: 32px; height: 32px; }
-    #icon-pill button svg { width: 18px; height: 18px; }
-    /* Overflow as dropdown, tight */
-    #search-box { right: 44px !important; max-width: 220px; }
-    #search-box button { padding: 3px 5px !important; font-size: 10px !important; min-height: 24px !important; }
-    /* Ask + Walk: persist, tight, top-right. Site hidden. */
-    #site-cam-btn { display: none !important; }
-    #walk-mode-btn { display: inline-block !important; top: 4px !important; right: 4px !important; padding: 4px 6px !important; font-size: 14px !important; min-height: 28px !important; }
-    #nlp-btn { display: inline-block !important; top: 4px !important; right: 44px !important; left: auto !important; transform: none !important; padding: 4px 6px !important; font-size: 14px !important; min-height: 28px !important; }
-    /* §S265: NLP bar — fit beside HUD in landscape */
-    #nlp-bar { left: auto !important; right: 0 !important; max-width: 55vw !important; border-radius: 0 0 0 8px !important; }
-    #nlp-chips { left: auto !important; right: 0 !important; max-width: 55vw !important; }
-    /* S265 Phase 4: HUD unified — landscape compact */
-    #hud { top: 4px !important; left: 4px !important; right: auto !important; bottom: auto !important; max-width: 40vw; font-size: 10px !important; padding: 4px 8px !important; max-height: 60vh; overflow-y: auto; }
-    #hud h2 { font-size: 11px !important; }
-    #hud .stat { font-size: 10px !important; }
-    #hud:has(> .panel-body.collapsed) { padding: 2px 6px !important; max-width: 80px !important; }
-    #hud #storey-body button, #hud #disc-body button { padding: 3px 6px !important; font-size: 11px !important; min-height: 24px !important; }
-    #hud .hud-accordion-header { font-size: 10px !important; padding: 3px 0 !important; }
-    #status { bottom: 2px; font-size: 9px !important; padding: 2px 6px !important; }
-    #info-panel { max-width: 120px !important; font-size: 9px !important; padding: 4px 6px !important; }
-    /* Collapsed = truly gone, no blocking */
-    .panel-body.collapsed { max-height: 0 !important; padding: 0 !important; margin: 0 !important; opacity: 0 !important; overflow: hidden !important; }
-    #search-box:has(.panel-body.collapsed), #hud:has(> .panel-body.collapsed) { padding: 1px 3px !important; min-height: 0 !important; overflow: hidden !important; }
-    .swipe-hidden, #hud.swipe-hidden, #search-box.swipe-hidden, #info-panel.swipe-hidden { display: none !important; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+    .card { padding: 10px 12px; }
+    .card .name { font-size: 13px; }
+    .header h1 { font-size: 22px; }
   }
 </style>
 </head>
 <body>
-<div id="hud">
-  <h2 onclick="togglePanel('hud-body');resetHudAutoCollapse()" style="cursor:pointer" data-trl="source_app">BIM OOTB v3</h2>
-  <div id="hud-body" class="panel-body">
-    <div class="stat"><span data-trl="ui_buildings">Buildings</span>: <b id="s-buildings">—</b></div>
-    <div class="stat"><span data-trl="ui_elements">Elements</span>: <b id="s-elements">—</b></div>
-    <div class="stat"><span data-trl="ui_meshes">Meshes</span>: <b id="s-meshes">—</b></div>
-    <div class="stat"><span data-trl="ui_streaming">Streaming</span>: <b id="s-active" style="color:#4fc3f7">—</b></div>
-    <div class="stat"><span data-trl="ui_rendered">Rendered</span>: <b id="s-streamed">0</b>/<b id="s-building-total">0</b> <b id="s-current-element" style="color:#4fc3f7;font-size:10px"></b>
-      <div style="height:3px;background:#333;border-radius:2px;margin-top:2px"><div id="s-progress" style="height:100%;width:0%;background:#4fc3f7;border-radius:2px;transition:width 0.1s"></div></div>
+<div style="background:#ff8c00;color:#000;text-align:center;padding:8px;font-weight:bold;font-size:14px;font-family:Segoe UI,sans-serif;letter-spacing:1px">DEVELOPMENT SITE FOR BACK UP TESTING</div>
+
+<div class="header">
+  <a href="https://www.sysnova.co.uk/" target="_blank" style="display:block;margin:0 auto 16px;text-decoration:none"><img src="Sysnova.png" alt="Sysnova Information Systems Limited" style="display:block;margin:0 auto;height:80px;width:auto"></a>
+  <div style="display:flex;justify-content:center;align-items:baseline;gap:32px;flex-wrap:wrap">
+    <h1 style="color:#0277bd;margin-bottom:0"><span style="font-size:64px;display:block;margin-bottom:-8px;line-height:0.8;font-family:'Arial Black',Impact,sans-serif;letter-spacing:16px;margin-left:16px">BIM</span><span data-trl="landing_ootb" style="font-size:16px;font-weight:400;font-family:'Arial Black',Impact,sans-serif;letter-spacing:6px;margin-left:6px;color:#0277bdaa;text-transform:lowercase">outofthebox</span></h1>
+    <a href="sandbox/erp.html" target="_blank" style="text-decoration:none"><h1 style="color:#e8a735;margin-bottom:0"><span style="font-size:64px;display:block;margin-bottom:-8px;line-height:0.8;font-family:'Arial Black',Impact,sans-serif;letter-spacing:16px;margin-left:16px">ERP</span><span style="font-size:16px;font-weight:400;font-family:'Arial Black',Impact,sans-serif;letter-spacing:6px;margin-left:6px;color:#e8a735aa;text-transform:lowercase">outofthebox</span></h1></a>
+  </div>
+  <div style="display:flex;justify-content:center;align-items:center;gap:14px;margin-top:10px">
+    <a href="https://youtu.be/bSyuLQ_c4rw" target="_blank" style="display:inline-flex;align-items:center;gap:6px;color:#0277bd;font-size:13px;text-decoration:none;padding:4px 8px"><img src="sandbox/YT.png" alt="YouTube" style="height:20px;vertical-align:middle"> <span data-trl="landing_watch_demo">Watch Demo</span></a>
+    <a href="javascript:void(0)" onclick="document.getElementById('about-dialog').classList.toggle('active')" style="display:inline-flex;align-items:center;gap:5px;color:#444;font-size:13px;text-decoration:none;padding:4px 8px">&#10067; <span data-trl="landing_about">About</span></a>
+    <a href="javascript:void(0)" id="header-flag-btn" onclick="if(window._TRL_LOADER)_TRL_LOADER.openFlagPicker()" style="display:inline-flex;align-items:center;gap:4px;color:#444;font-size:16px;text-decoration:none;padding:4px 8px;cursor:pointer" title="Language">&#127760;</a>
+    <a href="javascript:void(0)" onclick="if(window.APP&&APP.reportBug)APP.reportBug();else window.open('https://github.com/red1oon/BIMCompiler/issues/new?labels=bug','_blank')" style="display:inline-flex;align-items:center;gap:4px;color:#444;font-size:13px;text-decoration:none;padding:4px 8px;cursor:pointer" title="Send to GitHub Issues Tracker"><img src="submit.png" alt="Submit" style="height:18px;vertical-align:middle"> <span style="font-size:10px">Send to GitHub Issues Tracker</span></a>
+  </div>
+</div>
+
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div style="margin-top:12px; color:#aaa"><span data-trl="landing_loading">Loading building manifest...</span></div>
+  <div class="elapsed" id="elapsed">0:00</div>
+</div>
+
+<div id="content" style="display:none">
+  <!-- S222: Hero Import Panel -->
+  <div style="max-width:720px;margin:0 auto;padding:24px 20px 8px">
+    <div id="import-zone" style="border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:40px 32px 28px;text-align:center;cursor:pointer;transition:all 0.15s;background:#1a1a2e">
+
+      <!-- Headline — Leo Burnett big -->
+      <div onclick="event.stopPropagation()" style="pointer-events:auto;cursor:default">
+        <div style="font-size:20px;font-weight:300;color:#e0e0e0;letter-spacing:0.2px;line-height:1.1;margin-bottom:0"><span data-trl="landing_headline" style="font-size:20px">In <b style="font-size:44px">60</b> seconds, the way you <b style="font-size:44px">BIM</b><br><span style="font-weight:700;color:#ff9800">will never be the same.</span></span></div>
+
+        <!-- Steps — pure visual, no interaction -->
+        <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin:32px 0 28px;flex-wrap:wrap;opacity:0.7">
+          <span data-trl="landing_step_import" style="color:#4fc3f7;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase">Import</span>
+          <span style="color:#888;font-size:9px">&mdash;</span>
+          <span data-trl="landing_step_view" style="color:#4fc3f7;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase">View</span>
+          <span style="color:#888;font-size:9px">&mdash;</span>
+          <span data-trl="landing_step_compare" style="color:#4fc3f7;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase">Compare</span>
+          <span style="color:#888;font-size:9px">&mdash;</span>
+          <span data-trl="landing_step_costed" style="color:#4fc3f7;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase">Costed</span>
+          <span style="color:#888;font-size:9px">&mdash;</span>
+          <span data-trl="landing_step_done" style="color:#44cc44;font-size:10px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase">Done</span>
+        </div>
+      </div>
+
+      <!-- Drop target — this is the only clickable part -->
+      <div style="border:2px dashed rgba(79,195,247,0.4);border-radius:10px;padding:20px;margin:0 auto;max-width:380px;transition:border-color 0.15s">
+        <div style="color:#4fc3f7;font-size:14px;font-weight:600;letter-spacing:0.3px"><span data-trl="landing_drop_ifc">Drop IFC or 3D file here</span></div>
+        <div style="color:#888;font-size:11px;margin-top:4px">or tap to browse</div>
+      </div>
+      <div id="import-status" style="color:#e0e0e0;font-size:12px;margin-top:10px"></div>
+      <div style="display:none;margin-top:8px;height:4px;background:#222;border-radius:2px;overflow:hidden;max-width:400px;margin-left:auto;margin-right:auto">
+        <div id="import-progress-bar" style="height:100%;width:0%;background:#0277bd;border-radius:2px;transition:width 0.3s"></div>
+      </div>
+      <input type="file" id="import-file-input" accept=".ifc,.dae,.obj,.glb,.gltf,.3ds,.fbx,.stl" multiple style="display:none">
+
+      <!-- Footer — quiet -->
+      <div style="margin-top:16px;color:#444;font-size:10px;letter-spacing:0.3px">
+        <a href="https://red1oon.github.io/BIMCompiler/StrategicIndustryPositioning/" target="_blank" onclick="event.stopPropagation()" style="color:#0277bd;text-decoration:none"><span data-trl="landing_theory">Theory</span> 👁️</a>
+        &middot; <a href="https://youtu.be/hv0kcc_TKvY" target="_blank" onclick="event.stopPropagation()" style="color:#0277bd;text-decoration:none"><span data-trl="landing_practical">Practical</span> 👌</a>
+      </div>
     </div>
-    <div class="stat"><span data-trl="ui_done">Done</span>: <b id="s-buildings-done">0</b></div>
-    <div id="disc-bars" style="margin-top:4px"></div>
-    <!-- S265 Phase 4: Storey accordion inside HUD -->
-    <div id="hud-storey-section" class="hud-accordion" style="display:none">
-      <b class="hud-accordion-header" onclick="togglePanel('storey-body');resetHudAutoCollapse()" data-trl="ui_storeys">Storeys</b>
-      <div id="storey-body" class="panel-body"></div>
+  </div>
+
+  <!-- S220: My Buildings (imported) -->
+  <div id="my-buildings-section" style="display:none">
+    <div class="section-header" data-trl="landing_my_buildings">My Buildings</div>
+    <div class="grid" id="my-buildings-grid"></div>
+  </div>
+
+  <!-- S250 §9: Community Projects (contributed buildings) -->
+  <div id="community-section" style="display:none">
+    <div class="section-header">Community Projects</div>
+    <div class="grid" id="community-grid"></div>
+  </div>
+
+  <!-- S224: Merge/New modal -->
+  <div id="merge-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:#1a1a2e;border:1px solid rgba(79,195,247,0.2);border-radius:12px;padding:28px 32px;max-width:400px;width:90%;text-align:center">
+      <div style="color:#0277bd;font-size:15px;font-weight:600;margin-bottom:12px">Add to existing project?</div>
+      <div id="merge-target" style="color:#ccc;font-size:13px;margin-bottom:16px"></div>
+      <select id="merge-select" style="display:none;width:100%;padding:8px;background:#222;color:#fff;border:1px solid #555;border-radius:4px;font-size:13px;margin-bottom:16px"></select>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="merge-btn" style="flex:1;padding:12px 20px;background:#0277bd;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;min-height:44px">Merge</button>
+        <button id="merge-new-btn" style="flex:1;padding:12px 20px;background:#333;color:#ccc;border:1px solid #555;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px">New</button>
+      </div>
+      <div style="color:#555;font-size:10px;margin-top:10px">Enter = Merge · Escape = New</div>
     </div>
-    <!-- S265 Phase 4: Discipline accordion inside HUD -->
-    <div id="hud-disc-section" class="hud-accordion" style="display:none">
-      <b class="hud-accordion-header" onclick="togglePanel('disc-body');resetHudAutoCollapse()" data-trl="ui_disciplines">Disciplines</b>
-      <div id="disc-body" class="panel-body"></div>
+  </div>
+
+  <!-- S224: Compare version picker modal -->
+  <div id="compare-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9000;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:#1a1a2e;border:1px solid rgba(79,195,247,0.2);border-radius:12px;padding:28px 32px;max-width:400px;width:90%;text-align:center">
+      <div style="color:#0277bd;font-size:15px;font-weight:600;margin-bottom:12px">Compare Versions</div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;justify-content:center;align-items:center">
+        <select id="compare-a" style="flex:1;padding:8px;background:#222;color:#fff;border:1px solid #555;border-radius:4px;font-size:12px"></select>
+        <span style="color:#0277bd;font-weight:700">vs</span>
+        <select id="compare-b" style="flex:1;padding:8px;background:#222;color:#fff;border:1px solid #555;border-radius:4px;font-size:12px"></select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="compare-go-btn" style="flex:1;padding:12px 20px;background:#0277bd;color:#000;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;min-height:44px">Compare</button>
+        <button id="compare-cancel-btn" style="flex:0;padding:12px 20px;background:#333;color:#ccc;border:1px solid #555;border-radius:8px;font-size:14px;cursor:pointer;min-height:44px">Cancel</button>
+      </div>
     </div>
-    <!-- S266: Grid bays accordion — shown only in Doc mode -->
-    <div id="hud-gridbays-section" class="hud-accordion" style="display:none">
-      <b class="hud-accordion-header" onclick="togglePanel('gridbays-body');resetHudAutoCollapse()">Grid Bays</b>
-      <div id="gridbays-body" class="panel-body" style="font:11px monospace;color:#ccc;padding:2px 0"></div>
+  </div>
+
+  <div id="city-progress" style="display:none; padding:12px 20px; max-width:1200px; margin:0 auto">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px">
+      <span data-trl="landing_complete_city" style="font-size:14px; font-weight:700; color:#0277bd; letter-spacing:1px">COMPLETE THE CITY</span>
+      <span id="city-count" style="font-size:12px; color:#888">0 / 30 <span data-trl="landing_buildings_explored">buildings explored</span></span>
     </div>
-    <button id="variance-btn" onclick="toggleVariance();event.stopPropagation()" style="display:none;margin-top:6px;width:100%;padding:6px;background:rgba(204,204,68,0.15);color:#cccc44;border:1px solid rgba(204,204,68,0.4);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600">&#916; <span data-trl="ui_variance">Variance</span></button>
-  </div>
-</div>
-<!-- ── Icon Pill: 5 primary icons, right edge, vertical ── -->
-<div id="icon-pill">
-  <button id="doc-btn" onclick="if(typeof toggleDocPill==='function')toggleDocPill();event.stopPropagation()" title="Red Pill"><img src="redpill.png" width="24" height="24" alt="Red Pill" style="pointer-events:none"></button>
-  <button id="pill-measure" onclick="toggleMeasure();event.stopPropagation()" data-trl-title="ui_tt_measure" title="Measure"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></button>
-  <button onclick="if(typeof APP!=='undefined'&&APP.openFindPanel)APP.openFindPanel();event.stopPropagation()" data-trl-title="ui_tt_find" title="Find"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg></button>
-  <button onclick="if(typeof APP!=='undefined'&&APP.quickShare)APP.quickShare();event.stopPropagation()" data-trl-title="ui_tt_share" title="Share"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg></button>
-  <button onclick="if(typeof showCommandPalette==='function')showCommandPalette();event.stopPropagation()" data-trl-title="ui_tt_help" title="Help"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg></button>
-  <button id="more-btn" onclick="toggleOverflow();event.stopPropagation()" title="More"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
-</div>
-<div id="overflow-scrim" onclick="toggleOverflow()"></div>
-<!-- ── Overflow menu: toggled by ⋮, keeps search-box ID for backward compat ── -->
-<div id="search-box">
-  <input id="search" type="text" data-trl-placeholder="ui_filter" placeholder="Filter..." onclick="event.stopPropagation()" style="display:none">
-  <div id="search-body" class="panel-body">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px">
-      <button onclick="toggleMeasure();toggleOverflow();event.stopPropagation()" title="Measure" data-trl-title="ui_tt_measure" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg></button>
-      <button id="section-btn" onclick="toggleSection();toggleOverflow();event.stopPropagation()" title="Section Cut" data-trl-title="ui_tt_section" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></button>
-      <button id="xray-btn" onclick="toggleXray();toggleOverflow();event.stopPropagation()" title="X-Ray" data-trl-title="ui_tt_xray" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M18.944 12.33a1 1 0 0 0 0-.66 7.5 7.5 0 0 0-13.888 0 1 1 0 0 0 0 .66 7.5 7.5 0 0 0 13.888 0"/></svg></button>
-      <button onclick="toggleIssues();toggleOverflow();event.stopPropagation()" title="Issues" data-trl-title="ui_tt_issues" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg></button>
-      <button onclick="toggleOverflow();setTimeout(function(){if(APP&&APP._loadClashRules)APP._loadClashRules(function(r){APP._currentClashRules=r;APP._showClashMatrix(r,document.body)})},100);event.stopPropagation()" title="Clash Matrix" data-trl-title="ui_tt_clash" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></button>
-      <button id="fly-btn" onclick="toggleFlyAround();toggleOverflow();event.stopPropagation()" title="Fly Tour" data-trl-title="ui_tt_fly" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></button>
-      <button id="grid-2d-btn" onclick="if(window._isMobile){APP.status.textContent='2D Plans — Desktop only';toggleOverflow();return}open2DPlans();toggleOverflow();event.stopPropagation()" title="2D Plans" data-trl-title="ui_tt_2d" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg></button>
-      <button id="sunglass-btn" onclick="toggleOverflow();toggleSunglass();event.stopPropagation()" title="Palette" data-trl-title="ui_tt_sunglass" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/></svg></button>
-      <button onclick="toggleNightMode();toggleOverflow();event.stopPropagation()" title="Night" data-trl-title="ui_tt_night" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg></button>
-      <button id="shadow-overflow-btn" onclick="toggleShadow();toggleOverflow();event.stopPropagation()" title="Shadow" data-trl-title="ui_tt_shadow" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></button>
-      <button id="bg-overflow-btn" onclick="toggleBackground();toggleOverflow();event.stopPropagation()" title="Background" data-trl-title="ui_tt_bg" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/></svg></button>
-      <button onclick="toggleFullscreen();toggleOverflow();event.stopPropagation()" title="Fullscreen" data-trl-title="ui_tt_fullscreen" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
-      <button onclick="screenshot();toggleOverflow();event.stopPropagation()" title="Screenshot" data-trl-title="ui_tt_screenshot" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg></button>
-      <button onclick="export4D5D();toggleOverflow();event.stopPropagation()" title="4D/5D Export" data-trl-title="ui_tt_export" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></button>
-      <button id="header-flag-btn" onclick="location.href='../index.html';event.stopPropagation()" title="Home" data-trl-title="ui_tt_home" style="background:transparent;color:#ddd;border:none;border-radius:8px;cursor:pointer;padding:10px;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+    <div style="height:8px; background:#222; border-radius:4px; overflow:hidden">
+      <div id="city-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#0277bd,#44cc44); border-radius:4px; transition:width 0.4s ease"></div>
     </div>
-    <button id="measure-btn" style="display:none"></button>
-    <button id="walk-speed-btn" onclick="cycleWalkSpeed();event.stopPropagation()" title="Walk Speed" data-trl-title="ui_tt_walk_speed" style="background:#333;color:#ddd;border:1px solid #555;border-radius:6px;cursor:pointer;font-size:14px;padding:6px 10px;display:none;align-items:center;justify-content:center;margin:4px">1x</button>
-    <div id="building-list" style="max-height:400px;overflow-y:auto"></div>
+    <div id="city-complete" style="display:none; text-align:center; padding:10px; margin-top:8px; background:rgba(68,204,68,0.1); border:1px solid rgba(68,204,68,0.3); border-radius:6px">
+      <span data-trl="landing_city_unlocked" style="color:#44cc44; font-weight:700; font-size:14px; letter-spacing:1px">CITY UNLOCKED</span>
+      <button id="city-launch-btn" onclick="launchCity()" style="margin-left:16px; padding:6px 20px; background:linear-gradient(90deg,#0277bd,#44cc44); border:none; border-radius:4px; color:#000; font-weight:700; font-size:13px; cursor:pointer; letter-spacing:1px" data-trl="landing_launch_city">LAUNCH CITY 1M</button>
+    </div>
+  </div>
+
+  <div class="section-header" id="instant-header" data-trl="landing_city">City Buildings</div>
+  <div class="grid" id="instant-grid"></div>
+  <div class="section-header" id="large-header" data-trl="landing_landmark">Landmark Buildings</div>
+  <div class="grid" id="large-grid"></div>
+</div>
+
+<div class="footer">
+  <a href="https://red1oon.github.io/BIMCompiler/StrategicIndustryPositioning/" target="_blank">Documentation</a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://github.com/red1oon/BIMCompiler" target="_blank">GitHub</a>
+  &nbsp;&middot;&nbsp;
+  BIM OOTB &mdash; FOSS &middot; No account &middot; No vendor lock-in
+  &nbsp;&middot;&nbsp;
+  <a href="https://red1oon.goatcounter.com" target="_blank">📊 <span data-trl="landing_live_stats">Live Stats</span></a>
+  &nbsp;&middot;&nbsp;
+  <a href="javascript:clearAllCache()" style="color:#ff8a65">Clear Cache</a>
+  <div style="margin-top:20px;color:#555;font-size:11px">
+    <span data-trl="landing_created_by">Created by</span> <a href="mailto:red1org@gmail.com" style="color:#0277bd;text-decoration:none">Redhuan D. OON</a> (red1) — October 2025
+  </div>
+  <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(0,0,0,0.1);font-size:13px;color:#333;letter-spacing:0.5px">
+    <a href="https://www.sysnova.co.uk/" target="_blank" style="text-decoration:none"><strong style="color:#0277bd;font-size:14px;display:block;margin-bottom:3px">Sysnova Information Systems Limited</strong></a>
+    UNITED KINGDOM
   </div>
 </div>
-<div id="info-panel">
-  <span class="panel-toggle" onclick="document.getElementById('info-panel').style.display='none'">×</span>
-  <div><span class="label" data-trl="ui_class">Class</span>: <span class="value" id="info-class">—</span></div>
-  <div><span class="label" data-trl="ui_name">Name</span>: <span class="value" id="info-name">—</span></div>
-  <div><span class="label" data-trl="ui_guid">GUID</span>: <span class="value" id="info-guid" style="font-size:10px">—</span></div>
-  <div><span class="label" data-trl="ui_building">Building</span>: <span class="value" id="info-building">—</span></div>
-  <div><span class="label" data-trl="h_storey">Storey</span>: <span class="value" id="info-storey">—</span></div>
-  <div><span class="label" data-trl="h_discipline">Discipline</span>: <span class="value" id="info-disc">—</span></div>
-  <div><span class="label" data-trl="h_material">Material</span>: <span class="value" id="info-material">—</span></div>
-  <div id="snag-btn-row" style="margin-top:6px;display:none"><button onclick="openSiteCamera()" style="background:#f44336;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer">📸 <span data-trl="ui_snag">Snag</span></button></div>
+
+<div class="tabs-panel" id="tabs-panel">
+  <div class="tab-label" data-trl="landing_open_tabs">Open Tabs</div>
+  <div class="tab-list" id="tab-list"></div>
 </div>
-<!-- S265 Phase 4: storey-panel and disc-panel moved inside #hud as accordion sections -->
-<button id="site-cam-btn" onclick="openSiteCamera()" data-trl-title="ui_tt_sitecam" title="Site Camera" style="display:none">&#128247;</button>
-<button id="walk-mode-btn" onclick="toggleWalkMode()" data-trl-title="ui_tt_walk" title="Walk Mode">&#128694;</button>
-<!-- S265 Phase 5: NLP mic merged into Find panel — standalone button removed -->
-<button id="nlp-btn" style="display:none"></button>
-<div id="walk-anchor-prompt">
-  <h3 data-trl="ui_walk_title">Walk Mode</h3>
-  <p data-trl="ui_walk_instructions">Stand at the building entrance and tap SET to anchor your GPS position to the model.</p>
-  <button onclick="setWalkAnchor()" data-trl="ui_walk_set">SET</button>
-  <button class="cancel" onclick="cancelWalkAnchor()" data-trl="ui_cancel">Cancel</button>
-</div>
-<div id="issues-panel">
-  <h3><span data-trl="ui_issues_title">Issues</span> <span class="panel-toggle" onclick="toggleIssues()">&times;</span></h3>
-  <div class="issues-toolbar">
-    <button onclick="exportIssuesExcel();event.stopPropagation()">&#128196; <span data-trl="ui_export_excel">Export Excel</span></button>
-    <button onclick="clearAllIssues();event.stopPropagation()" style="background:#663333;border-color:#884444">&#128465; <span data-trl="ui_clear_all">Clear All</span></button>
-  </div>
-  <div id="issues-list"></div>
-  <div id="issue-detail-view">
-    <button onclick="_issueBackToList()" style="align-self:flex-start;padding:4px 10px;background:#444;color:#fff;border:1px solid #666;border-radius:4px;cursor:pointer;font-size:11px">&larr; <span data-trl="ui_back">Back</span></button>
-    <img id="issue-detail-img" src="">
-    <div class="detail-row" id="issue-d-link-row" style="display:none"><a id="issue-d-link" href="#" style="color:#4fc3f7;font-size:12px;font-weight:bold">-</a> <button id="issue-d-share" style="background:#333;color:#4fc3f7;border:1px solid #555;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;margin-left:8px">Share</button></div>
-    <div class="detail-row"><span class="label" data-trl="ui_class">Class</span>: <span class="value" id="issue-d-class">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_name">Name</span>: <span class="value" id="issue-d-name">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_guid">GUID</span>: <span class="value" id="issue-d-guid" style="font-size:10px">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_building">Building</span>: <span class="value" id="issue-d-building">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="h_storey">Storey</span>: <span class="value" id="issue-d-storey">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="h_discipline">Discipline</span>: <span class="value" id="issue-d-disc">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_gps">GPS</span>: <span class="value" id="issue-d-gps">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_compass">Compass</span>: <span class="value" id="issue-d-compass">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_time">Time</span>: <span class="value" id="issue-d-time">-</span></div>
-    <div class="detail-row"><span class="label" data-trl="ui_notes">Notes</span>: <span class="value" id="issue-d-notes">-</span></div>
-    <button id="issue-d-status-btn" style="margin-top:8px;padding:8px 16px;border:none;border-radius:6px;color:#fff;font-size:13px;cursor:pointer;width:100%">🔴 <span data-trl="ui_open">Open</span></button>
-  </div>
-</div>
-<button id="panel-toggle-btn" onclick="toggleAllPanels()"
-        style="position:fixed;bottom:16px;left:16px;z-index:100;
-               background:rgba(40,40,40,0.85);color:#4fc3f7;border:1px solid #666;
-               border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer">
-  −
-</button>
-<!-- S266: Timeline slider — Doc mode phase scrubber -->
-<div id="doc-timeline" style="display:none;position:fixed;bottom:52px;left:10%;right:10%;z-index:11;
-  background:rgba(10,10,30,0.6);border-radius:8px;padding:6px 12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
-  <div style="display:flex;align-items:center;gap:8px">
-    <button id="tl-back" style="background:none;border:none;color:#4fc3f7;font-size:16px;cursor:pointer;padding:2px 6px" title="Previous phase">◀</button>
-    <input id="tl-slider" type="range" min="0" max="1" value="0" step="1"
-      style="flex:1;accent-color:#ff4444;height:6px;cursor:pointer">
-    <button id="tl-fwd" style="background:none;border:none;color:#4fc3f7;font-size:16px;cursor:pointer;padding:2px 6px" title="Next phase">▶</button>
-    <span id="tl-label" style="color:#ccc;font:11px monospace;min-width:80px;text-align:right">0 / 0</span>
-  </div>
-</div>
-<div id="status">v3 — <span data-trl="ui_initializing">Initializing...</span></div>
-<pre id="walk-log" style="display:none;position:fixed;bottom:0;left:0;right:0;max-height:200px;overflow:auto;background:#111;color:#0f0;font-size:10px;z-index:99;padding:4px;margin:0"></pre>
-<div id="section-slider-panel">
-  <label><span data-trl="ui_section_cut">Section Cut</span> <span class="panel-toggle" onclick="toggleSection()" style="float:right;cursor:pointer">&times;</span></label>
-  <div style="margin:4px 0">
-    <button id="sec-axis-y" onclick="setSectionAxis('Y')" style="padding:2px 8px;background:#4fc3f7;color:#000;border:1px solid #666;border-radius:3px;cursor:pointer;font-size:11px">Y ↕</button>
-    <button id="sec-axis-x" onclick="setSectionAxis('X')" style="padding:2px 8px;background:#444;color:#fff;border:1px solid #666;border-radius:3px;cursor:pointer;font-size:11px">X ↔</button>
-    <button id="sec-axis-z" onclick="setSectionAxis('Z')" style="padding:2px 8px;background:#444;color:#fff;border:1px solid #666;border-radius:3px;cursor:pointer;font-size:11px">Z ⊥</button>
-  </div>
-  <div style="position:relative">
-    <input type="range" id="section-slider" min="0" max="100" value="100" step="0.1" oninput="updateSectionPlane(this.value)">
-    <div id="bookmark-ticks" style="position:absolute;top:0;left:0;right:0;height:100%;pointer-events:none"></div>
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <span class="section-val" id="section-val">—</span>
-    <button id="bookmark-add-btn" onclick="addScissorsBookmark()" style="background:#2a4a2a;color:#8f8;border:1px solid #3a7a3a;border-radius:4px;padding:2px 8px;font-size:14px;cursor:pointer;line-height:1" title="Bookmark this cut position">&#x1F516;</button>
-    <button id="bookmark-del-btn" onclick="deleteScissorsBookmark()" style="background:#4a2a2a;color:#f88;border:1px solid #7a3a3a;border-radius:4px;padding:2px 8px;font-size:14px;cursor:pointer;line-height:1;display:none" title="Remove bookmark">&times;</button>
-  </div>
-</div>
+
+<script src="sandbox/import_db_builder.js?v=3"></script>
+<!-- wizard.js now loads in viewer via ?wizard=1 param (S230) -->
 <script>
-// ── Scissors Bookmarks — tick marks on slider rail ──────────────
-// Storage: kernel_ops SCISSORS_BOOKMARK. Replay on scissors open.
-// Tap tick → jump slider. ⊕ saves current. × deletes nearest.
-(function() {
-  var bookmarks = []; // [{ id, val, axis }] — kernel_op ids + slider values
+// ── Config ──
+const _ociMatch = location.href.match(/(https:\/\/objectstorage\.[^/]+\/n\/[^/]+\/b\/[^/]+\/o\/)/);
+const _base = _ociMatch ? _ociMatch[1] : '';
 
-  window.addScissorsBookmark = function() {
-    if (!window.APP || !APP.sectionOn) return;
-    var slider = document.getElementById('section-slider');
-    if (!slider) return;
-    var val = parseFloat(slider.value);
-    var axis = APP.sectionAxis || 'Y';
+// All buildings use full-download viewer (no httpvfs — too slow over network)
+const viewerFile = 'sandbox/index.html?_v=' + Date.now();
 
-    // If 2D grid overlay is active, ⊕ does nothing — 2D panel has its own Save ✚
-    if (APP._gridOverlayState && APP._gridOverlayState.active) {
-      console.log('§BOOKMARK skip — 2D grid active, use panel Save instead');
+const DISC_COLORS = {
+  ARC: '#4488ff', STR: '#44cccc', MEP: '#44cc44',
+  ELEC: '#cccc44', FP: '#cc8844', ACMV: '#cc4444',
+  PLB: '#8844cc', HEAT: '#ff6644', HVAC: '#44aacc',
+};
+
+// ── Timer ──
+const loadStart = performance.now();
+const elapsedEl = document.getElementById('elapsed');
+const timerInterval = setInterval(() => {
+  const s = Math.floor((performance.now() - loadStart) / 1000);
+  elapsedEl.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}, 1000);
+
+// ── Open tab tracking ──
+const openTabs = {};  // name → window reference
+
+function trackTab(name, type, win) {
+  const key = name + '_' + type;
+  openTabs[key] = { name, type, win };
+  renderTabs();
+}
+
+function renderTabs() {
+  const panel = document.getElementById('tabs-panel');
+  const list = document.getElementById('tab-list');
+  // Clean closed tabs
+  for (const [key, tab] of Object.entries(openTabs)) {
+    if (tab.win && tab.win.closed) delete openTabs[key];
+  }
+  const entries = Object.values(openTabs);
+  if (entries.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = entries.map(tab => {
+    const label = tab.type === '3D' ? tab.name : `${tab.name} ${tab.type}`;
+    const focusCall = tab.win ? `openTabs['${tab.name}_${tab.type}'].win.focus()` : '';
+    return `<div class="tab-item" onclick="${focusCall}">${label}</div>`;
+  }).join('');
+}
+// Poll for closed tabs
+setInterval(renderTabs, 3000);
+
+// All per-building DBs — single DB per building (S242), no separate library
+const BUILDINGS = {
+  'SampleHouse': { db: 'SampleHouse_extracted.db' },
+  'BimWhale_Tall': { db: 'BimWhale_Tall_extracted.db' },
+  'AC90_Jasmin': { db: 'AC90_Jasmin_extracted.db' },
+  'FZKHaus': { db: 'FZKHaus_extracted.db' },
+  'Ifc4_FZKHaus': { db: 'FZKHaus_extracted.db' },
+  'AC90_Niedriha': { db: 'AC90_Niedriha_extracted.db' },
+  'BimWhale_Basic': { db: 'BimWhale_Basic_extracted.db' },
+  'VogelGesamt': { db: 'VogelGesamt_extracted.db' },
+  'BimWhale_Large': { db: 'BimWhale_Large_extracted.db' },
+  'AC9_HausGH': { db: 'AC9_HausGH_extracted.db' },
+  'HospitalAuckland': { db: 'Ifc4_Revit_extracted.db' },
+  'SmileyWest': { db: 'SmileyWest_extracted.db' },
+  'Jesse': { db: 'Jesse_extracted.db' },
+  'AC11Institute': { db: 'AC11Institute_extracted.db' },
+  'Ifc2x3_AC11Institute': { db: 'AC11Institute_extracted.db' },
+  'Duplex': { db: 'Duplex_extracted.db' },
+  'LTU_AHouse': { db: 'LTU_AHouse_extracted.db' },
+  'Hospital': { db: 'hospital.db' },
+  'Hospital_3': { db: 'Hospital_3_extracted.db' },
+  'Terminal': { db: 'Terminal_extracted.db' },
+  'Clinic': { db: 'Clinic_extracted.db' },
+  'Ifc4_Revit': { db: 'Ifc4_Revit_extracted.db' },
+  'WBDG_Office': { db: 'WBDG_Office_extracted.db' },
+  'HHS_Office_Federated': { db: 'HHS_Office_Federated_extracted.db' },
+  'HITOS': { db: 'HITOS_extracted.db' },
+  'Esplanades': { db: 'Esplanades_extracted.db' },
+  'HospitalGarage': { db: 'HospitalGarage_extracted.db' },
+  'HospitalGarage_2': { db: 'HospitalGarage_2_extracted.db' },
+  'Schependomlaan': { db: 'Schependomlaan_extracted.db' },
+  'SampleCastle': { db: 'SampleCastle_extracted.db' },
+  'Molio': { db: 'Molio_extracted.db' },
+  'BimWhale_Advanced': { db: 'BimWhale_Advanced_extracted.db' },
+};
+
+// Track which buildings the user has viewed (persist in localStorage)
+const _stored = localStorage.getItem('bim_ootb_viewed');
+const viewedBuildings = new Set(_stored ? JSON.parse(_stored) : []);
+
+function saveViewed() {
+  localStorage.setItem('bim_ootb_viewed', JSON.stringify([...viewedBuildings]));
+}
+
+// DB files served from production bucket — dev only overrides viewer/JS
+const _prodBase = 'https://objectstorage.ap-kulai-2.oraclecloud.com/n/ax3cp6tzwuy2/b/bim-ootb/o/';
+
+function openViewer(archName, repBuilding) {
+  const bld = BUILDINGS[archName];
+  if (!bld) { alert(`No DB for ${archName}`); return; }
+  const bldBase = _prodBase + 'buildings/';
+  const viewerUrl = _base ? _base + 'sandbox/index.html' : 'sandbox/index.html';
+  const url = viewerUrl + `?db=${bldBase}${bld.db}`; // single DB — lib param retired (S242)
+  const win = window.open(url, 'bim_' + archName);
+  // window.open returns null if popup is blocked (some mobile browsers)
+  if (!win) { location.href = url; return; }
+  trackTab(archName, '3D', win);
+  const isNew = !viewedBuildings.has(archName);
+  viewedBuildings.add(archName);
+  saveViewed();
+  updateCityProgress();
+  // Mark card as viewed
+  const cardEl = document.querySelector(`[data-arch="${archName}"]`);
+  if (cardEl) cardEl.classList.add('viewed');
+}
+
+// ── Build cards ──
+function buildCard(arch, container) {
+  const card = document.createElement('div');
+  card.className = 'card' + (viewedBuildings.has(arch.name) ? ' viewed' : '');
+  card.setAttribute('data-arch', arch.name);
+
+  const discBars = Object.entries(arch.disciplines || {}).map(([d, c]) => {
+    const color = DISC_COLORS[d] || '#888';
+    const pct = (c / arch.count) * 100;
+    return `<span class="disc-bar" style="background:${color};width:${Math.max(pct * 1.5, 3)}px" title="${d}: ${c.toLocaleString()}"></span>`;
+  }).join('');
+
+  const instancesBadge = ''  // removed — city instances not useful on landing page
+  const _unused = arch.instances > 1
+    ? `<span class="instances">&times;${arch.instances}</span>`
+    : '';
+
+  const viewedBadge = viewedBuildings.has(arch.name)
+    ? '<span style="color:#44cc44;font-size:11px;margin-left:6px">&#10003;</span>'
+    : '';
+
+  card.innerHTML = `
+    <div class="name">${arch.name}${instancesBadge}${viewedBadge}</div>
+    <div class="meta">
+      <b>${arch.count.toLocaleString()}</b> ${_TRL.ui_elements||'elements'}<br>
+      ${Object.keys(arch.disciplines || {}).join(' &middot; ')}
+    </div>
+    <div class="disc-bars">${discBars}</div>
+    <button class="open-btn" onclick="event.stopPropagation(); openViewer('${arch.name}', '${arch.representative}')">${_TRL.landing_open_viewer||'Open 3D Viewer'} &#9889;</button>
+  `;
+  card.addEventListener('click', () => openViewer(arch.name, arch.representative));
+  container.appendChild(card);
+}
+
+// ── City completion progress ──
+let cityUnlocked = false;
+function updateCityProgress() {
+  const total = window._totalArchetypes || Object.keys(BUILDINGS).length;
+  const done = viewedBuildings.size;
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('city-count').textContent = `${done} / ${total} ${_TRL.landing_buildings_explored||'buildings explored'}`;
+  document.getElementById('city-bar').style.width = pct + '%';
+  if (done >= total && !cityUnlocked) {
+    cityUnlocked = true;
+    document.getElementById('city-complete').style.display = 'block';
+    document.getElementById('city-bar').style.background = 'linear-gradient(90deg,#44cc44,#ffdd44)';
+    // Show launch button — user clicks when ready
+  }
+}
+
+// ── Clear all cached data ──
+function clearAllCache() {
+  indexedDB.deleteDatabase('bim_ootb_cache');
+  localStorage.removeItem('bim_ootb_viewed');
+  viewedBuildings.clear();
+  updateCityProgress();
+  alert('Cache cleared. Page will reload.');
+  location.reload();
+}
+
+// ── Launch city viewer (all 786 buildings from cached DBs) ──
+function launchCity() {
+  const bldBase = _prodBase + 'buildings/';
+  const viewerUrl = _base ? _base + 'sandbox/index.html' : 'sandbox/index.html';
+  const url = viewerUrl + `?city=${bldBase}city_index.db&bldbase=${bldBase}`;
+  const win = window.open(url, 'bim_city_1M');
+  trackTab('City 1M', '3D', win);
+}
+
+// ── Ensure _TRL is always defined (locale_loader.js may not have run yet) ──
+window._TRL = window._TRL || {};
+
+// ── Load manifest ──
+async function loadManifest() {
+  const loadingEl = document.getElementById('loading');
+  try {
+    const url = (_base || '') + 'manifest.json';
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 10000);
+    let resp;
+    try {
+      resp = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(tid);
+    } catch(e) {
+      clearTimeout(tid);
+      throw new Error(e.name === 'AbortError' ? 'Timed out — check connection' : e.message);
+    }
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!data || !Array.isArray(data.archetypes)) throw new Error('Manifest missing archetypes');
+
+    clearInterval(timerInterval);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+
+
+    // Split: landmark (>5000 elements or flagged) vs city
+    const landmark = data.archetypes.filter(a => a.count >= 5000 || a.landmark);
+    const city = data.archetypes.filter(a => a.count < 5000 && !a.landmark);
+
+    const largeGrid = document.getElementById('large-grid');
+    const instantGrid = document.getElementById('instant-grid');
+
+    // Keep manifest order (smallest first, SH+DX at top)
+    landmark.forEach(a => buildCard(a, largeGrid));
+    city.forEach(a => buildCard(a, instantGrid));
+
+    if (landmark.length === 0) document.getElementById('large-header').style.display = 'none';
+    if (city.length === 0) document.getElementById('instant-header').style.display = 'none';
+
+    // Show city progress bar
+    window._totalArchetypes = data.archetypes.length;
+    document.getElementById('city-progress').style.display = 'block';
+    updateCityProgress();
+
+    // ── Health check: verify viewer is reachable ──
+    const _viewerCheck = (_base || '') + 'sandbox/index.html';
+    fetch(_viewerCheck, { method: 'HEAD' }).then(r => {
+      if (!r.ok) {
+        document.body.insertAdjacentHTML('afterbegin',
+          '<div style="background:#cc0000;color:#fff;text-align:center;padding:10px;font-weight:bold">' +
+          '⚠ Viewer unavailable (HTTP ' + r.status + ') — buildings may not load. Admin notified.</div>');
+        fetch('https://ntfy.sh/bim-ootb-alert', { method: 'POST',
+          body: 'BIM OOTB BROKEN: Viewer returned HTTP ' + r.status + ' at ' + new Date().toISOString()
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+
+  } catch (e) {
+    clearInterval(timerInterval);
+    // Show error inside #content so it's visible even if #loading was already hidden
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    ['instant-grid','large-grid'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.children.length === 0) {
+        el.innerHTML = '<div style="padding:20px;color:#ff8844;font-size:13px">&#9888; ' +
+          e.message + ' &nbsp;<a href="javascript:location.reload()" ' +
+          'style="color:#0277bd">Reload</a></div>';
+      }
+    });
+  }
+}
+
+loadManifest();
+
+// ── Discipline from filename (landing-side override for prod worker) ──
+var _VALID_DISCS = ['ARC','STR','MEP','PLB','ACMV','ELEC','FP','VENT','HEAT','SAN','COOL','VOID'];
+var _DISC_ALIAS = {
+  // Short forms from real-world IFC filenames
+  ELE:'ELEC', ELECTRICAL:'ELEC',
+  FIRE:'FP', SPR:'FP', SPRINKLER:'FP',
+  AIR:'ACMV', DUCT:'ACMV', HVAC:'ACMV', MECH:'ACMV', MECHANICAL:'ACMV',
+  ARCHITECTURAL:'ARC', STRUCTURAL:'STR', PLUMBING:'PLB',
+};
+function _discFromFilename(fname) {
+  var stem = fname.replace(/\.(ifc|obj|stl|dae|glb|gltf|3ds|fbx)$/i, '');
+  var parts = stem.split(/[_\-]/);
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var p = parts[i].toUpperCase();
+    if (_VALID_DISCS.indexOf(p) >= 0) return p;
+    if (_DISC_ALIAS[p]) return _DISC_ALIAS[p];
+  }
+  return null;
+}
+
+// ── S224: IFC Import — Versioned IndexedDB, Merge/New, Compare ──
+const IMPORT_DB_NAME = 'bim_ootb_imports';
+const IMPORT_STORE = 'buildings';
+const IMPORT_DB_VERSION = 2;  // v2: versioned storage model
+
+function openImportDB() {
+  return new Promise(resolve => {
+    const req = indexedDB.open(IMPORT_DB_NAME, IMPORT_DB_VERSION);
+    req.onupgradeneeded = function(e) {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IMPORT_STORE)) {
+        db.createObjectStore(IMPORT_STORE);
+      }
+      // Migrate v1 → v2: wrap old per-file records into versioned format
+      if (e.oldVersion < 2) {
+        const tx = req.transaction;
+        const store = tx.objectStore(IMPORT_STORE);
+        const getAll = store.getAllKeys();
+        getAll.onsuccess = function() {
+          const keys = getAll.result;
+          for (const key of keys) {
+            const gr = store.get(key);
+            gr.onsuccess = function() {
+              const old = gr.result;
+              if (old && !old.versions) {
+                // Old format: { meta, extractedDb, libraryDb } → new: { meta, versions[], latestVersion }
+                const migrated = {
+                  meta: old.meta,
+                  versions: [{ key: key, importDate: new Date().toISOString(), db: old.extractedDb }],
+                  latestVersion: 0
+                };
+                store.put(migrated, key);
+                console.log('[S224] §MIGRATE_V1 key=' + key);
+              }
+            };
+          }
+        };
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+// Cache DB helper (same as viewer scene.js)
+const CACHE_DB_NAME = 'bim_ootb_cache';
+const CACHE_STORE = 'dbs';
+function openCacheDB() {
+  return new Promise(resolve => {
+    const req = indexedDB.open(CACHE_DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(CACHE_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+// List all projects (versioned records)
+async function listProjects() {
+  const db = await openImportDB();
+  if (!db) return [];
+  return new Promise(resolve => {
+    const tx = db.transaction(IMPORT_STORE, 'readonly');
+    const store = tx.objectStore(IMPORT_STORE);
+    const req = store.getAllKeys();
+    req.onsuccess = () => {
+      const keys = req.result;
+      if (keys.length === 0) { resolve([]); return; }
+      const items = [];
+      let done = 0;
+      for (const key of keys) {
+        const r2 = store.get(key);
+        r2.onsuccess = () => {
+          const val = r2.result;
+          if (val) items.push({ key, meta: val.meta, versions: val.versions || [], latestVersion: val.latestVersion || 0 });
+          done++;
+          if (done === keys.length) resolve(items);
+        };
+        r2.onerror = () => { done++; if (done === keys.length) resolve(items); };
+      }
+    };
+    req.onerror = () => resolve([]);
+  });
+}
+
+// Get a single project record
+async function getProject(key) {
+  const db = await openImportDB();
+  if (!db) return null;
+  return new Promise(resolve => {
+    const tx = db.transaction(IMPORT_STORE, 'readonly');
+    const req = tx.objectStore(IMPORT_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+// Save a project record
+async function saveProject(key, record) {
+  const db = await openImportDB();
+  if (!db) return;
+  return new Promise(resolve => {
+    const tx = db.transaction(IMPORT_STORE, 'readwrite');
+    tx.objectStore(IMPORT_STORE).put(record, key);
+    tx.oncomplete = resolve;
+  });
+}
+
+// Delete a project and its cache entries
+async function deleteProject(key) {
+  const db = await openImportDB();
+  if (!db) return;
+  const record = await getProject(key);
+  await new Promise(resolve => {
+    const tx = db.transaction(IMPORT_STORE, 'readwrite');
+    tx.objectStore(IMPORT_STORE).delete(key);
+    tx.oncomplete = resolve;
+  });
+  // Clear viewer cache for all versions
+  const cacheDb = await openCacheDB();
+  if (cacheDb && record && record.versions) {
+    try {
+      const tx = cacheDb.transaction(CACHE_STORE, 'readwrite');
+      const store = tx.objectStore(CACHE_STORE);
+      for (var i = 0; i < record.versions.length; i++) {
+        store.delete('import://' + key + '/v' + i);
+      }
+      // Legacy keys
+      store.delete('import://' + key + '/extracted');
+      store.delete('import://' + key + '/library');
+    } catch(e) {}
+  }
+  var bar = document.getElementById('import-progress-bar');
+  if (bar) { bar.style.width = '0%'; bar.style.background = '#0277bd'; bar.parentElement.style.display = 'none'; }
+  var st = document.getElementById('import-status');
+  if (st) st.textContent = '';
+  console.log('[S224] §VERSION_DELETE key=' + key + ' versions=' + (record ? record.versions.length : 0));
+  renderImportCards();
+}
+
+// Open latest version of a project in viewer
+// opts: { wizard: true } to launch classification wizard in viewer
+async function openProject(key, btnEl, opts) {
+  if (btnEl) { btnEl.textContent = 'Opening...'; btnEl.disabled = true; }
+  const record = await getProject(key);
+  if (!record || !record.versions.length) {
+    alert('Building not found');
+    if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; }
+    return;
+  }
+  // Always open v0 (combined DB with all merged disciplines)
+  const base = record.versions[0];
+  const cacheDb = await openCacheDB();
+  if (!cacheDb) { if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; } return; }
+
+  const dbUrl = 'import://' + key + '/v0';
+  const libUrl = dbUrl;  // single DB — geometry + metadata in one
+  await new Promise(resolve => {
+    const tx = cacheDb.transaction(CACHE_STORE, 'readwrite');
+    tx.objectStore(CACHE_STORE).put(base.db, dbUrl);
+    tx.objectStore(CACHE_STORE).put(base.db, libUrl);
+    tx.oncomplete = resolve;
+  });
+
+  // Variance: only if a 'revised' version exists — diff v0 (combined) against revision snapshot
+  var diffParam = '';
+  if (record.versions.length > 1) {
+    for (var vi = 1; vi < record.versions.length; vi++) {
+      if (/revised/i.test(record.versions[vi].key || '')) {
+        var revUrl = 'import://' + key + '/v' + vi;
+        await new Promise(resolve => {
+          const tx2 = cacheDb.transaction(CACHE_STORE, 'readwrite');
+          tx2.objectStore(CACHE_STORE).put(record.versions[vi].db, revUrl);
+          tx2.oncomplete = resolve;
+        });
+        diffParam = '&diffdb=' + encodeURIComponent(revUrl);
+        console.log('[S225] §OPEN_DIFF key=' + key + ' base=v0(combined) diff=v' + vi + '(revised)');
+        break;
+      }
+    }
+  }
+
+  // S230: Add wizard param for mesh imports (S230b: skip if already completed)
+  var wizardParam = '';
+  var isMesh = record.meta && record.meta.sourceFormat && record.meta.sourceFormat !== '.ifc';
+  var wizardDone = record.meta && record.meta.wizard_complete;
+  if (((opts && opts.wizard) || isMesh) && !wizardDone) {
+    wizardParam = '&wizard=1&wizardKey=' + encodeURIComponent(key);
+  }
+  const viewerUrl = (_base || '') + 'sandbox/index.html?db=' +
+    encodeURIComponent(dbUrl) + '&lib=' + encodeURIComponent(libUrl) + diffParam + wizardParam;
+  const win = window.open(viewerUrl, '_blank');
+  trackTab(record.meta.name || key, '3D', win);
+  if (btnEl) { btnEl.textContent = 'Open'; btnEl.disabled = false; }
+}
+
+// Export latest version DB as file download — Save = Accept (collapse versions)
+async function exportProjectDb(key) {
+  const record = await getProject(key);
+  if (!record || !record.versions.length) return;
+  const latest = record.versions[record.latestVersion];
+  const blob = new Blob([latest.db], { type: 'application/x-sqlite3' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = key.replace(/\.ifc$/i, '') + '.db';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  console.log('[S225] §EXPORT_DB key=' + key + ' size=' + (latest.db.byteLength / 1024).toFixed(0) + 'KB');
+  // S225: Collapse versions — Save = Accept. Latest becomes new v0, variance cleared.
+  if (record.versions.length > 1) {
+    record.versions = [{ key: key, importDate: new Date().toISOString(), db: latest.db, note: 'Accepted' }];
+    record.latestVersion = 0;
+    record.meta.elements = null;  // will refresh on next render
+    await saveProject(key, record);
+    renderImportCards();
+    console.log('[S225] §ACCEPT key=' + key + ' — versions collapsed to v0');
+  }
+}
+
+// Compare two versions — opens viewer with base + diff
+async function openCompare(key, idxA, idxB) {
+  const record = await getProject(key);
+  if (!record || !record.versions[idxA] || !record.versions[idxB]) return;
+  const cacheDb = await openCacheDB();
+  if (!cacheDb) return;
+
+  const urlA = 'import://' + key + '/v' + idxA;
+  const urlB = 'import://' + key + '/v' + idxB;
+  await new Promise(resolve => {
+    const tx = cacheDb.transaction(CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(CACHE_STORE);
+    store.put(record.versions[idxA].db, urlA);
+    store.put(record.versions[idxA].db, urlA);  // lib = same as db
+    store.put(record.versions[idxB].db, urlB);
+    tx.oncomplete = resolve;
+  });
+
+  const viewerUrl = (_base || '') + 'sandbox/index.html?db=' +
+    encodeURIComponent(urlA) + '&lib=' + encodeURIComponent(urlA) +
+    '&diffdb=' + encodeURIComponent(urlB);
+  window.open(viewerUrl, '_blank');
+  console.log('[S224] §COMPARE_OPEN key=' + key + ' v' + idxA + ' vs v' + idxB);
+}
+
+// Show compare picker modal (for 3+ versions) or auto-compare (for 2)
+function showComparePicker(key, versions) {
+  if (versions.length === 2) {
+    openCompare(key, 0, 1);
+    return;
+  }
+  const modal = document.getElementById('compare-modal');
+  const selA = document.getElementById('compare-a');
+  const selB = document.getElementById('compare-b');
+  selA.innerHTML = '';
+  selB.innerHTML = '';
+  for (var i = 0; i < versions.length; i++) {
+    var label = 'v' + (i + 1) + ' — ' + (versions[i].key || '').replace(/\.ifc$/i, '');
+    selA.innerHTML += '<option value="' + i + '">' + label + '</option>';
+    selB.innerHTML += '<option value="' + i + '">' + label + '</option>';
+  }
+  selA.value = '0';
+  selB.value = String(versions.length - 1);
+  modal.style.display = 'flex';
+  modal._projectKey = key;
+}
+
+document.getElementById('compare-go-btn').onclick = function() {
+  var modal = document.getElementById('compare-modal');
+  var a = parseInt(document.getElementById('compare-a').value);
+  var b = parseInt(document.getElementById('compare-b').value);
+  if (a === b) { alert('Pick two different versions'); return; }
+  modal.style.display = 'none';
+  openCompare(modal._projectKey, a, b);
+};
+document.getElementById('compare-cancel-btn').onclick = function() {
+  document.getElementById('compare-modal').style.display = 'none';
+};
+
+// ── Merge/New modal logic ──
+var _pendingMerge = null;  // { dbBuf, meta, filename, resolve }
+
+function showMergeModal(projects, filename) {
+  return new Promise(function(resolve) {
+    const modal = document.getElementById('merge-modal');
+    const target = document.getElementById('merge-target');
+    const sel = document.getElementById('merge-select');
+
+    if (projects.length === 1) {
+      target.textContent = 'Merge "' + filename + '" into "' + projects[0].key + '"?';
+      sel.style.display = 'none';
+    } else {
+      target.textContent = 'Merge "' + filename + '" into:';
+      sel.style.display = 'block';
+      sel.innerHTML = '';
+      for (var i = 0; i < projects.length; i++) {
+        sel.innerHTML += '<option value="' + projects[i].key + '">' + projects[i].key +
+          ' (v' + projects[i].versions.length + ', ' +
+          (projects[i].meta.elementCount || 0).toLocaleString() + ' el)</option>';
+      }
+    }
+    modal.style.display = 'flex';
+
+    function cleanup() {
+      modal.style.display = 'none';
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) {
+      if (e.key === 'Enter') { cleanup(); resolve({ action: 'merge', target: projects.length === 1 ? projects[0].key : sel.value }); }
+      if (e.key === 'Escape') { cleanup(); resolve({ action: 'new' }); }
+    }
+    document.addEventListener('keydown', onKey);
+    document.getElementById('merge-btn').onclick = function() {
+      cleanup();
+      resolve({ action: 'merge', target: projects.length === 1 ? projects[0].key : sel.value });
+    };
+    document.getElementById('merge-new-btn').onclick = function() {
+      cleanup();
+      resolve({ action: 'new' });
+    };
+  });
+}
+
+// ── Render import cards (versioned) ──
+async function renderImportCards() {
+  const container = document.getElementById('my-buildings-grid');
+  const section = document.getElementById('my-buildings-section');
+  if (!container || !section) return;
+  const projects = await listProjects();
+  if (projects.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  container.innerHTML = '';
+
+  for (const proj of projects) {
+    if (!proj.meta) continue;
+    const card = document.createElement('div');
+    card.className = 'card';
+    const discs = proj.meta.disciplines || {};
+    const total = proj.meta.elementCount || 0;
+    const discBars = Object.entries(discs).map(([d, c]) => {
+      const pct = Math.max(3, (c / total) * 100);
+      const color = DISC_COLORS[d] || '#888';
+      return '<span class="disc-bar" style="width:' + pct + '%;background:' + color + '"></span>';
+    }).join('');
+    var displayName = proj.key.replace(/\.ifc$/i, '');
+    var vCount = proj.versions.length;
+    var vBadge = vCount > 1 ? '<span style="color:#cccc44;font-size:10px;margin-left:4px">v' + vCount + '</span>' : '';
+
+    // Build button row — S230b: Save opens export flyout (IFC or DB), triangle removed
+    var buttons = '<button class="open-btn" style="flex:1" data-open="' + proj.key + '">Open</button>';
+    buttons += '<button class="open-btn" style="flex:0;padding:6px 10px;background:rgba(76,175,80,0.15);border-color:rgba(76,175,80,0.3);color:#4caf50;font-size:10px" data-share="' + proj.key + '">Share</button>';
+    buttons += '<button class="open-btn" style="flex:0;padding:6px 10px;background:rgba(204,68,68,0.15);border-color:rgba(204,68,68,0.3);color:#cc4444" data-del="' + proj.key + '">x</button>';
+
+    card.innerHTML =
+      '<div class="name">' + displayName + vBadge + '</div>' +
+      '<div class="meta"><b>' + total.toLocaleString() + '</b> elements · ' + Object.keys(discs).join(', ') + '</div>' +
+      '<div class="disc-bars">' + discBars + '</div>' +
+      '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' + buttons + '</div>';
+
+    card.querySelector('[data-open]').onclick = function() { openProject(this.dataset.open, this); };
+    card.querySelector('[data-share]').onclick = function(e) {
+      e.stopPropagation();
+      var shareKey = this.dataset.share;
+      window.A = window.A || {};
+      A._getImport = getProject;
+      A.CONTRIBUTE_PAR = A.CONTRIBUTE_PAR || '';
+      A.exportIFC = function(k) { exportProjectIFC(k); };
+      if (!document._shareLoaded) {
+        var script = document.createElement('script');
+        script.src = 'sandbox/share.js?v=1';
+        script.onload = function() { document._shareLoaded = true; A.openShareSheet(shareKey); };
+        script.onerror = function() { alert('Failed to load share module'); };
+        document.head.appendChild(script);
+      } else { A.openShareSheet(shareKey); }
+    };
+    card.querySelector('[data-del]').onclick = function(e) {
+      e.stopPropagation();
+      var k = this.dataset.del;
+      var p = projects.find(function(x) { return x.key === k; });
+      var n = p ? p.versions.length : 1;
+      if (confirm('Delete ' + displayName + (n > 1 ? ' (all ' + n + ' versions)?' : '?'))) deleteProject(k);
+    };
+    container.appendChild(card);
+  }
+}
+
+// S228: Format detection for multi-format drop zone
+var LANDING_FORMAT_ROUTES = { ifc:'ifc', dae:'mesh', obj:'mesh', glb:'mesh', gltf:'mesh', '3ds':'mesh', fbx:'mesh', stl:'mesh' };
+function detectLandingFormat(filename) {
+  var ext = filename.split('.').pop().toLowerCase();
+  return { ext: ext, route: LANDING_FORMAT_ROUTES[ext] || null };
+}
+
+// ── Import handler (with Merge/New prompt) ──
+async function handleImportFile(file) {
+  if (!file) return;
+  var fmt = detectLandingFormat(file.name);
+  if (!fmt.route) {
+    document.getElementById('import-status').textContent = 'Unsupported: .' + fmt.ext + ' — Accepted: IFC, OBJ, DAE, GLB, STL, FBX, 3DS';
+    return;
+  }
+  const status = document.getElementById('import-status');
+  const progressBar = document.getElementById('import-progress-bar');
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  status.textContent = 'Reading ' + file.name + ' (' + sizeMB + 'MB)...';
+  progressBar.parentElement.style.display = 'block';
+  progressBar.style.width = '0%';
+  progressBar.style.background = '#0277bd';
+
+  if (file.size > 200 * 1024 * 1024) status.textContent = 'Very large (' + sizeMB + 'MB) — may take a few minutes';
+
+  const arrayBuffer = await file.arrayBuffer();
+  // S228: Route to IFC or mesh worker based on format
+  var workerFile = (fmt.route === 'ifc') ? 'sandbox/import_worker.js?v=8' : 'sandbox/mesh_import_worker.js?v=2';
+  var workerMsg = (fmt.route === 'ifc') ? { arrayBuffer, filename: file.name } : { arrayBuffer, filename: file.name, ext: fmt.ext };
+  const worker = new Worker(workerFile);
+
+  worker.onmessage = async function(e) {
+    const msg = e.data;
+    if (msg.type === 'progress') {
+      status.textContent = msg.phase;
+      progressBar.style.width = msg.pct + '%';
       return;
     }
-
-    // Standalone scissors: bookmark as tick on slider rail
-    bookmarks.push({ val: val, axis: axis });
-    saveBookmarksToLS();
-    renderBookmarkTicks();
-    console.log('§BOOKMARK added val=' + val.toFixed(1) + ' axis=' + axis + ' total=' + bookmarks.length);
-  };
-
-  window.deleteScissorsBookmark = function() {
-    if (!bookmarks.length) return;
-    var slider = document.getElementById('section-slider');
-    var curVal = slider ? parseFloat(slider.value) : 0;
-
-    // Find nearest bookmark to current slider position
-    var bestIdx = 0, bestDist = Infinity;
-    for (var i = 0; i < bookmarks.length; i++) {
-      var d = Math.abs(bookmarks[i].val - curVal);
-      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    if (msg.type === 'error') {
+      status.textContent = 'Failed: ' + msg.message;
+      progressBar.style.background = '#cc4444';
+      worker.terminate();
+      return;
     }
-
-    var removed = bookmarks.splice(bestIdx, 1)[0];
-    saveBookmarksToLS();
-    renderBookmarkTicks();
-    console.log('§BOOKMARK deleted val=' + removed.val.toFixed(1) + ' remaining=' + bookmarks.length);
-  };
-
-  function renderBookmarkTicks() {
-    var container = document.getElementById('bookmark-ticks');
-    var slider = document.getElementById('section-slider');
-    var addBtn = document.getElementById('bookmark-add-btn');
-    var delBtn = document.getElementById('bookmark-del-btn');
-    if (!container || !slider) return;
-
-    container.innerHTML = '';
-    var min = parseFloat(slider.min);
-    var max = parseFloat(slider.max);
-    var range = max - min;
-    if (range <= 0) return;
-
-    for (var i = 0; i < bookmarks.length; i++) {
-      var pct = ((bookmarks[i].val - min) / range) * 100;
-      var tick = document.createElement('div');
-      tick.style.cssText = 'position:absolute;left:' + pct + '%;top:0;width:3px;height:100%;' +
-        'background:#ff4444;border-radius:1px;pointer-events:auto;cursor:pointer;opacity:0.8';
-      tick.setAttribute('data-idx', String(i));
-      tick.addEventListener('pointerup', function(e) {
-        e.stopPropagation();
-        var idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
-        if (idx >= 0 && idx < bookmarks.length) {
-          slider.value = bookmarks[idx].val;
-          if (window.updateSectionPlane) updateSectionPlane(bookmarks[idx].val);
-          updateBookmarkButtons();
-          console.log('§BOOKMARK jump idx=' + idx + ' val=' + bookmarks[idx].val.toFixed(1));
+    if (msg.type === 'done') {
+      status.textContent = 'Building databases...';
+      try {
+        if (typeof initSqlJs === 'undefined') {
+          await new Promise(resolve => {
+            const s = document.createElement('script');
+            s.src = 'https://sql.js.org/dist/sql-wasm.js';
+            s.onload = resolve;
+            document.head.appendChild(s);
+          });
         }
-      });
-      container.appendChild(tick);
-    }
+        const SQL = await initSqlJs({ locateFile: f => 'https://sql.js.org/dist/' + f });
 
-    updateBookmarkButtons();
-  }
+        // Implementing DropIFCMergeNoVarianceDISC.md §3 — discipline from filename override
+        var _fnDisc = _discFromFilename(file.name);
+        if (_fnDisc && msg.elements) {
+          var discBefore = Object.assign({}, msg.meta.disciplines || {});
+          msg.meta.disciplines = {};
+          for (var ei = 0; ei < msg.elements.length; ei++) {
+            msg.elements[ei].discipline = _fnDisc;
+          }
+          msg.meta.disciplines[_fnDisc] = msg.elements.length;
+          console.log('[S224] §DISC_OVERRIDE filename=' + file.name + ' disc=' + _fnDisc + ' elements=' + msg.elements.length);
+        }
 
-  // When slider is near a bookmark: grey ⊕, show ×. Otherwise: show ⊕, hide ×.
-  function updateBookmarkButtons() {
-    var slider = document.getElementById('section-slider');
-    var addBtn = document.getElementById('bookmark-add-btn');
-    var delBtn = document.getElementById('bookmark-del-btn');
-    if (!slider || !addBtn || !delBtn) return;
+        const dbs = buildImportDBs(SQL, msg);
+        const dbBuf = dbs.extractedDb;
 
-    var curVal = parseFloat(slider.value);
-    var nearBookmark = false;
-    for (var i = 0; i < bookmarks.length; i++) {
-      if (Math.abs(bookmarks[i].val - curVal) < 0.5) { nearBookmark = true; break; }
-    }
+        // S224: Check existing projects — prompt Merge/New if any exist
+        const existingProjects = await listProjects();
+        var projectKey = file.name;  // default: new project keyed by filename
 
-    if (nearBookmark) {
-      addBtn.style.opacity = '0.3';
-      addBtn.disabled = true;
-      delBtn.style.display = '';
-    } else {
-      addBtn.style.opacity = '1';
-      addBtn.disabled = false;
-      delBtn.style.display = 'none';
-    }
-  }
+        if (existingProjects.length > 0) {
+          console.log('[S224] §MERGE_PROMPT existing=' + existingProjects.length + ' file=' + file.name);
+          const choice = await showMergeModal(existingProjects, file.name);
 
-  function bmKey() {
-    var bld = (window.APP && APP.activeBuilding) ? APP.activeBuilding : 'default';
-    return bld + ':scissors_bookmarks';
-  }
+          if (choice.action === 'merge') {
+            var targetKey = choice.target;
+            var existing = await getProject(targetKey);
+            if (existing) {
+              // Always combine new elements into existing DB (multi-disc merge)
+              var baseIdx = existing.latestVersion || 0;
+              var existBuf = existing.versions[baseIdx].db;
+              var existDb = new SQL.Database(new Uint8Array(existBuf));
+              var newDb = new SQL.Database(new Uint8Array(dbBuf));
 
-  function saveBookmarksToLS() {
-    try { localStorage.setItem(bmKey(), JSON.stringify(bookmarks)); } catch (e) { /* full */ }
-  }
+              // Normalize building name: new file must match existing project's building
+              // Without this, viewer's WHERE building=? never finds merged elements
+              var existBldRows = existDb.exec("SELECT DISTINCT building FROM elements_meta LIMIT 1");
+              var existBldName = (existBldRows.length && existBldRows[0].values.length) ? existBldRows[0].values[0][0] : targetKey.replace(/\.ifc$/i,'');
+              newDb.run("UPDATE elements_meta SET building = ?", [existBldName]);
+              newDb.run("UPDATE component_geometries SET building = ?", [existBldName]);
+              console.log('[S224] §MERGE_NORMALIZE building=' + existBldName + ' file=' + file.name);
 
-  function loadBookmarksFromLS() {
-    try {
-      var raw = localStorage.getItem(bmKey());
-      bookmarks = raw ? JSON.parse(raw) : [];
-    } catch (e) { bookmarks = []; }
-  }
+              var _mergeTables = [
+                { name: 'elements_meta', cols: 'guid, ifc_class, element_name, storey, discipline, material_name, material_rgba, building' },
+                { name: 'element_transforms', cols: 'guid, center_x, center_y, center_z, rotation_x, rotation_y, rotation_z, bbox_x, bbox_y, bbox_z' },
+                { name: 'element_instances', cols: 'guid, geometry_hash' },
+                { name: 'component_geometries', cols: 'geometry_hash, vertices, faces, normals, building' },
+              ];
+              for (var ti = 0; ti < _mergeTables.length; ti++) {
+                var tbl = _mergeTables[ti];
+                var placeholders = tbl.cols.split(', ').map(function() { return '?'; }).join(',');
+                try {
+                  var rows = newDb.exec('SELECT ' + tbl.cols + ' FROM ' + tbl.name);
+                  if (rows.length > 0) {
+                    var ins = existDb.prepare('INSERT OR IGNORE INTO ' + tbl.name + ' VALUES (' + placeholders + ')');
+                    for (var ri = 0; ri < rows[0].values.length; ri++) ins.run(rows[0].values[ri]);
+                    ins.free();
+                  }
+                } catch(mergeErr) { console.log('[S224] §MERGE_TABLE_SKIP ' + tbl.name + ': ' + mergeErr.message); }
+              }
+              newDb.close();
+              var combinedBuf = existDb.export().buffer;
+              existDb.close();
+              existing.versions[baseIdx].db = combinedBuf;
 
-  // Load bookmarks on scissors open, clear ticks on scissors close
-  var origToggle = window.toggleSection;
-  window.toggleSection = function() {
-    if (origToggle) origToggle();
-    if (window.APP && APP.sectionOn) {
-      loadBookmarksFromLS();
-      renderBookmarkTicks();
-      console.log('§BOOKMARK loaded count=' + bookmarks.length);
-    }
-    if (window.APP && !APP.sectionOn) {
-      renderBookmarkTicks(); // clear ticks from DOM (bookmarks stay in localStorage)
+              // If 'revised', also keep the new file's DB as a separate version for variance
+              var isRevised = /revised/i.test(file.name);
+              if (isRevised) {
+                existing.versions.push({ key: file.name, importDate: new Date().toISOString(), db: dbBuf });
+                existing.latestVersion = existing.versions.length - 1;
+                console.log('[S224] §MERGE_REVISION target=' + targetKey + ' version=v' + existing.versions.length);
+              }
+              console.log('[S224] §MERGE_COMBINE target=' + targetKey + ' added=' + msg.meta.elementCount + ' elements from ' + file.name);
+              // Aggregate meta
+              var newDiscs = msg.meta.disciplines || {};
+              var oldDiscs = existing.meta.disciplines || {};
+              for (var d in newDiscs) { oldDiscs[d] = (oldDiscs[d] || 0) + newDiscs[d]; }
+              existing.meta.disciplines = oldDiscs;
+              existing.meta.elementCount = (existing.meta.elementCount || 0) + (msg.meta.elementCount || 0);
+              await saveProject(targetKey, existing);
+              status.textContent = 'Merged ' + (msg.meta.elementCount || 0) + ' elements into ' + targetKey;
+              progressBar.style.width = '100%';
+              progressBar.style.background = '#44cc44';
+              setTimeout(function() { status.textContent = ''; progressBar.style.width = '0%'; progressBar.style.background = '#0277bd'; progressBar.parentElement.style.display = 'none'; }, 3000);
+              renderImportCards();
+              worker.terminate();
+              return;
+            }
+          }
+          // action === 'new' → fall through to create new project
+          console.log('[S224] §MERGE_REJECT file=' + file.name);
+        }
+
+        // New project: single version
+        var newRecord = {
+          meta: msg.meta,
+          versions: [{ key: file.name, importDate: new Date().toISOString(), db: dbBuf }],
+          latestVersion: 0
+        };
+        await saveProject(projectKey, newRecord);
+        console.log('[S224] §IMPORT_SAVED key=' + projectKey + ' elements=' + msg.meta.elementCount);
+
+        status.textContent = 'Imported ' + msg.meta.elementCount + ' elements — see your building below \u2193';
+        progressBar.style.width = '100%';
+        progressBar.style.background = '#44cc44';
+        setTimeout(function() { status.textContent = ''; progressBar.style.width = '0%'; progressBar.style.background = '#0277bd'; progressBar.parentElement.style.display = 'none'; }, 3000);
+
+        renderImportCards();
+      } catch(dbErr) {
+        status.textContent = 'DB error: ' + dbErr.message;
+        progressBar.style.background = '#cc4444';
+        console.log('[S224] §IMPORT_DB_ERROR ' + dbErr.message);
+      }
+      worker.terminate();
     }
   };
 
-  // Update ⊕/× state as slider moves
-  var slider = document.getElementById('section-slider');
-  if (slider) {
-    slider.addEventListener('input', updateBookmarkButtons);
+  worker.onerror = function(err) {
+    status.textContent = 'Worker error: ' + err.message;
+    progressBar.style.background = '#cc4444';
+    worker.terminate();
+  };
+
+  worker.postMessage(workerMsg, [arrayBuffer]);
+}
+
+// ── Multi-IFC one-shot merge: select N discipline files → one building ──
+async function handleImportMultiIFC(files) {
+  const status = document.getElementById('import-status');
+  const progressBar = document.getElementById('import-progress-bar');
+  if (progressBar) { progressBar.style.width = '0%'; progressBar.parentElement.style.display = 'block'; progressBar.style.background = '#0277bd'; }
+
+  // Common prefix for building name: LTU_AHouse_ARC + LTU_AHouse_STR → LTU_AHouse
+  var stems = [];
+  for (var i = 0; i < files.length; i++) stems.push(files[i].name.replace(/\.(ifc|IFC)$/, ''));
+  var prefix = stems[0];
+  for (var i = 1; i < stems.length; i++) {
+    while (stems[i].indexOf(prefix) !== 0) { prefix = prefix.substring(0, prefix.length - 1); if (!prefix) break; }
   }
-})();
-</script>
+  var buildingName = prefix.replace(/[_\-]+$/, '') || stems[0];
 
-<!-- S265 Phase 5: sunglass panel built by JS A._buildSunglassPanel() -->
-<div id="sunglass-slider-panel" style="display:none"></div>
-<!-- Hidden legacy buttons referenced by tools.js -->
-<button id="bg-btn" style="display:none"></button>
-<button id="shadow-btn" style="display:none"></button>
-<button id="night-btn" style="display:none"></button>
-<span class="section-val" id="night-val" style="display:none">Off</span>
+  console.log('[S224] §MULTI_IMPORT_START files=' + files.length + ' building=' + buildingName);
+  if (status) status.textContent = 'Merging ' + files.length + ' IFC files → ' + buildingName + '...';
 
-<!-- Site Camera Overlay (mobile only) -->
-<div id="site-cam-overlay">
-  <video id="site-cam-video" autoplay playsinline></video>
-  <div id="site-cam-bim-bar">
-    <span class="cam-label" data-trl="ui_class">Class</span>: <span id="cam-class">—</span> &nbsp;
-    <span class="cam-label" data-trl="ui_name">Name</span>: <span id="cam-name">—</span><br>
-    <span class="cam-label" data-trl="ui_guid">GUID</span>: <span id="cam-guid" style="font-size:10px">—</span><br>
-    <span class="cam-label" data-trl="ui_building">Building</span>: <span id="cam-building">—</span> &nbsp;
-    <span class="cam-label" data-trl="h_storey">Storey</span>: <span id="cam-storey">—</span> &nbsp;
-    <span class="cam-label" data-trl="h_discipline">Discipline</span>: <span id="cam-disc">—</span>
-  </div>
-  <div id="site-cam-compass"></div>
-  <div id="site-cam-gps" data-trl="ui_gps_acquiring">GPS: acquiring...</div>
-  <div id="site-cam-time"></div>
-  <button id="site-cam-snap-btn" onclick="snapSitePhoto()">&#128247;</button>
-  <button onclick="closeSiteCamera()" style="position:absolute;top:12px;left:12px;background:rgba(0,0,0,0.6);color:#fff;border:1px solid #666;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;z-index:2001">✕</button>
-</div>
+  var allElements = [], allGeometries = [], allTransforms = [];
+  var allDiscs = {}, allStoreys = [];
 
-<!-- Site Camera Preview + Markup (after snap) -->
-<div id="site-cam-preview">
-  <div id="markup-toolbar" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center">
-    <button class="markup-btn active" data-tool="arrow" onclick="setMarkupTool('arrow')" style="padding:6px 10px;border-radius:6px;border:none;font-size:14px;cursor:pointer;background:#ff4444;color:#fff">&#8599; <span data-trl="ui_markup_arrow">Arrow</span></button>
-    <button class="markup-btn" data-tool="circle" onclick="setMarkupTool('circle')" style="padding:6px 10px;border-radius:6px;border:none;font-size:14px;cursor:pointer;background:#444;color:#fff">&#9675; <span data-trl="ui_markup_circle">Circle</span></button>
-    <button class="markup-btn" data-tool="freehand" onclick="setMarkupTool('freehand')" style="padding:6px 10px;border-radius:6px;border:none;font-size:14px;cursor:pointer;background:#444;color:#fff">&#9998; <span data-trl="ui_markup_draw">Draw</span></button>
-    <button class="markup-btn" data-tool="text" onclick="setMarkupTool('text')" style="padding:6px 10px;border-radius:6px;border:none;font-size:14px;cursor:pointer;background:#444;color:#fff">A <span data-trl="ui_markup_text">Text</span></button>
-    <span style="display:flex;gap:3px;align-items:center">
-      <button onclick="setMarkupColor('#ff0000')" style="width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:#ff0000;cursor:pointer" id="mc-red"></button>
-      <button onclick="setMarkupColor('#ffff00')" style="width:24px;height:24px;border-radius:50%;border:2px solid #333;background:#ffff00;cursor:pointer" id="mc-yellow"></button>
-      <button onclick="setMarkupColor('#00ff00')" style="width:24px;height:24px;border-radius:50%;border:2px solid #333;background:#00ff00;cursor:pointer" id="mc-green"></button>
-      <button onclick="setMarkupColor('#ffffff')" style="width:24px;height:24px;border-radius:50%;border:2px solid #333;background:#ffffff;cursor:pointer" id="mc-white"></button>
-    </span>
-    <button onclick="undoMarkup()" style="padding:6px 10px;border-radius:6px;border:none;font-size:14px;cursor:pointer;background:#666;color:#fff">&#8630; <span data-trl="ui_undo">Undo</span></button>
-  </div>
-  <canvas id="site-cam-markup" style="max-width:100%;max-height:60vh;border:1px solid #333;touch-action:none"></canvas>
-  <div id="site-cam-preview-controls" style="margin-bottom:calc(env(safe-area-inset-bottom, 20px))">
-    <button onclick="closeSitePreview()" style="background:#444;color:#fff" data-trl="ui_retake">Retake</button>
-    <button onclick="shareSitePhoto()" style="background:#4fc3f7;color:#000" data-trl="ui_share">Share</button>
-    <button onclick="downloadSitePhoto()" style="background:#4fc3f7;color:#000" data-trl="ui_save">Save</button>
-  </div>
-</div>
+  for (var fi = 0; fi < files.length; fi++) {
+    var file = files[fi];
+    var fileLabel = (fi + 1) + '/' + files.length + ': ' + file.name;
+    if (status) status.textContent = 'Parsing ' + fileLabel;
 
-<canvas id="canvas" style="display:none"></canvas>
+    try {
+      var result = await new Promise(function(resolve, reject) {
+        file.arrayBuffer().then(function(arrayBuffer) {
+          var worker = new Worker('sandbox/import_worker.js?v=8');
+          worker.onmessage = function(e) {
+            var msg = e.data;
+            if (msg.type === 'progress') {
+              var filePct = (fi / files.length + msg.pct / 100 / files.length) * 90;
+              if (progressBar) progressBar.style.width = filePct.toFixed(1) + '%';
+              if (status) status.textContent = fileLabel + ' — ' + msg.phase;
+              return;
+            }
+            if (msg.type === 'error') { worker.terminate(); reject(new Error(msg.message)); return; }
+            if (msg.type === 'done') {
+              // Apply discipline from filename
+              var fnDisc = _discFromFilename(file.name);
+              if (fnDisc && msg.elements) {
+                msg.meta.disciplines = {};
+                for (var ei = 0; ei < msg.elements.length; ei++) msg.elements[ei].discipline = fnDisc;
+                msg.meta.disciplines[fnDisc] = msg.elements.length;
+              }
+              worker.terminate();
+              resolve(msg);
+            }
+          };
+          worker.onerror = function(err) { worker.terminate(); reject(err); };
+          worker.postMessage({ arrayBuffer: arrayBuffer, filename: file.name }, [arrayBuffer]);
+        });
+      });
 
-<!-- Loading overlay: visible instantly, no scripts needed -->
-<div id="load-overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;
-  background:#1a1a2e;z-index:1000;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif">
-  <div style="color:#4fc3f7;font-size:24px;font-weight:700;margin-bottom:20px" data-trl="source_app">BIM OOTB</div>
-  <div style="color:#888;font-size:13px;margin-bottom:16px" data-trl="tagline">Frictionless BIM. Two DBs. One browser. Zero install.</div>
-  <div id="load-items" style="width:280px"></div>
-  <div id="load-elapsed" style="color:#555;font-size:12px;margin-top:12px">0:00</div>
-</div>
+      allElements = allElements.concat(result.elements);
+      allGeometries = allGeometries.concat(result.geometries);
+      allTransforms = allTransforms.concat(result.transforms);
+      for (var d in (result.meta.disciplines || {})) { allDiscs[d] = (allDiscs[d] || 0) + result.meta.disciplines[d]; }
+      (result.meta.storeys || []).forEach(function(s) { if (allStoreys.indexOf(s) < 0) allStoreys.push(s); });
+      console.log('[S224] §MULTI_FILE_DONE ' + fileLabel + ' elements=' + result.meta.elementCount);
 
-<!-- Floating bug report button — appears when canvas idle, hides on camera move -->
-<div id="bug-fab" style="display:none !important"
-  <img src="help.png" alt="Help" style="height:22px;vertical-align:middle">
-  <span style="color:#aaa;font-size:9px;margin-left:4px;vertical-align:middle">Report Bug</span>
-</div>
-
-<!-- §S260: Import map for Three.js r160 ESM — resolves bare 'three' specifier -->
-<script type="importmap">
-{ "imports": { "three": "./lib/three.module.min.js" } }
-</script>
-<script src="loader.js?v=10"></script>
-<script src="lib/httpvfs.js?v=1" onerror="console.warn('§LOAD_FAIL httpvfs.js — range-request streaming disabled')"></script>
-<script src="qrcode.min.js?v=1" onerror="console.warn('§LOAD_FAIL qrcode.min.js — QR sharing disabled')"></script>
-<script src="config.js?v=4" onerror="console.warn('§LOAD_FAIL config.js')"></script>
-<script src="scene.js?v=38" onerror="console.warn('§LOAD_FAIL scene.js')"></script>
-<script src="helpers.js?v=4" onerror="console.warn('§LOAD_FAIL helpers.js')"></script>
-<script src="streaming.js?v=42" onerror="console.warn('§LOAD_FAIL streaming.js')"></script>
-<script src="dlod.js?v=5" onerror="console.warn('§LOAD_FAIL dlod.js')"></script>
-<script src="panels.js?v=18" onerror="console.warn('§LOAD_FAIL panels.js')"></script>
-<script src="tools.js?v=21" onerror="console.warn('§LOAD_FAIL tools.js')"></script>
-<script src="picking.js?v=24" onerror="console.warn('§LOAD_FAIL picking.js')"></script>
-<script src="tour.js?v=3" onerror="console.warn('§LOAD_FAIL tour.js')"></script>
-<script src="clash_report.js?v=1" onerror="console.warn('§LOAD_FAIL clash_report.js')"></script>
-<script src="clash_snag.js?v=1" onerror="console.warn('§LOAD_FAIL clash_snag.js')"></script>
-<script src="measure.js?v=42" onerror="console.warn('§LOAD_FAIL measure.js')"></script>
-<script src="sitecam.js?v=7" onerror="console.warn('§LOAD_FAIL sitecam.js')"></script>
-<script src="share.js?v=2" onerror="console.warn('§LOAD_FAIL share.js')"></script>
-<script src="issues.js?v=5" onerror="console.warn('§LOAD_FAIL issues.js')"></script>
-<script src="excel.js?v=4" onerror="console.warn('§LOAD_FAIL excel.js')"></script>
-<script src="walk.js?v=7" onerror="console.warn('§LOAD_FAIL walk.js')"></script>
-<!-- navigate.js lazy-loaded on demand by main.js A.loadNavigate() -->
-<script src="city.js?v=7"></script>
-<script src="rates.js?v=7"></script>
-<script src="locale_loader.js?v=7"></script>
-<script src="nlp.js?v=5"></script>
-<script src="semantic_enrichment.js?v=1"></script>
-<script src="scene_to_db.js?v=1"></script>
-<script src="import_db_builder.js?v=2"></script>
-<script src="diff.js?v=3"></script>
-<script src="variation_order.js?v=2"></script>
-<script src="import.js?v=3"></script>
-<script src="routewalker.js?v=1" onerror="console.warn('§LOAD_FAIL routewalker.js — MEP generation disabled')"></script>
-<script src="grid_dims.js?v=6"></script>
-<script src="grid_config.js?v=2" onerror="console.warn('[GridConfig] grid_config.js skipped')"></script>
-<script src="grid_views.js?v=9" onerror="console.warn('[GridViews] grid_views.js skipped')"></script>
-<script src="grid_door_arcs.js?v=6" onerror="console.warn('[DoorArcs] grid_door_arcs.js skipped')"></script>
-<script src="section_cut.js?v=7" onerror="console.warn('[SectionCut] section_cut.js skipped')"></script>
-<script src="elevation.js?v=1" onerror="console.warn('[Elevation] elevation.js skipped')"></script>
-<script src="grid_contours.js?v=5" onerror="console.warn('[GridContours] grid_contours.js skipped')"></script>
-<script src="grid_dim_chains.js?v=4" onerror="console.warn('[DimChains] grid_dim_chains.js skipped')"></script>
-<script src="kernel_ops.js?v=3" onerror="console.warn('[KernelOps] kernel_ops.js skipped')"></script>
-<script src="bom_extract.js?v=1" onerror="console.warn('[BOMExtract] bom_extract.js skipped')"></script>
-<script src="verb_expand.js?v=1" onerror="console.warn('[VerbExpand] verb_expand.js skipped')"></script>
-<script src="bom_walker.js?v=1" onerror="console.warn('[BOMWalker] bom_walker.js skipped')"></script>
-<script src="doc_canvas.js?v=4" onerror="console.warn('[DocCanvas] doc_canvas.js skipped')"></script>
-<script src="cost_panel.js?v=4" onerror="console.warn('[CostPanel] cost_panel.js skipped')"></script>
-<script src="grid_drag.js?v=6" onerror="console.warn('[GridDrag] grid_drag.js skipped')"></script>
-<script src="grid_scissors.js?v=2" onerror="console.warn('[GridScissors] grid_scissors.js skipped')"></script>
-<script src="grid_overlay.js?v=33" onerror="console.warn('[GridOverlay] grid_overlay.js skipped — file not found or error')"></script>
-<script src="grid_assembler.js?v=2" onerror="console.warn('[GridAssembler] grid_assembler.js skipped')"></script>
-<script src="print_sheet.js?v=3" onerror="console.warn('[PrintSheet] print_sheet.js skipped')"></script>
-<script src="ghostglass.js?v=2" onerror="console.warn('§LOAD_FAIL ghostglass.js')"></script>
-<script src="wizard_orientation.js?v=1" onerror="console.warn('§LOAD_FAIL wizard_orientation.js')"></script>
-<script src="wizard_storeys.js?v=1" onerror="console.warn('§LOAD_FAIL wizard_storeys.js')"></script>
-<script src="wizard_classify.js?v=1" onerror="console.warn('§LOAD_FAIL wizard_classify.js')"></script>
-<script src="precision_cam.js?v=2" onerror="console.warn('§LOAD_FAIL precision_cam.js')"></script>
-<script src="time_machine.js?v=44" onerror="console.warn('§LOAD_FAIL time_machine.js')"></script>
-<script src="main.js?v=30"></script>
-<!-- Styled tooltip bubbles for [data-trl-title] buttons — appended to body, not clipped by overflow:hidden -->
-<style>#ootb-tip{display:none;position:fixed;z-index:9990;background:rgba(10,10,30,0.92);color:#4fc3f7;font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid rgba(79,195,247,0.35);pointer-events:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.4)}</style>
-<script>
-(function(){
-  var tip=document.createElement('div');tip.id='ootb-tip';document.body.appendChild(tip);
-  function show(btn){
-    var key=btn.getAttribute('data-trl-title');
-    var text=(typeof _TRL!=='undefined'&&_TRL[key])||btn.title||'';
-    if(!text)return;
-    tip.textContent=text;tip.style.display='block';
-    var r=btn.getBoundingClientRect();
-    var tx=r.left+r.width/2;
-    var ty=r.top-8;
-    tip.style.left=tx+'px';tip.style.top=ty+'px';
-    tip.style.transform='translate(-50%,-100%)';
+    } catch (err) {
+      console.log('[S224] §MULTI_FILE_ERROR ' + fileLabel + ' err=' + err.message);
+      if (status) status.textContent = 'Failed: ' + fileLabel + ' — ' + err.message;
+      if (progressBar) progressBar.style.background = '#cc4444';
+      return;
+    }
   }
-  document.addEventListener('mouseover',function(e){
-    var b=e.target.closest('[data-trl-title]');b?show(b):(tip.style.display='none');
+
+  // Build merged DB
+  if (status) status.textContent = 'Building merged database (' + allElements.length + ' elements)...';
+  if (progressBar) progressBar.style.width = '92%';
+
+  try {
+    if (typeof initSqlJs === 'undefined') {
+      await new Promise(function(resolve) {
+        var s = document.createElement('script'); s.src = 'https://sql.js.org/dist/sql-wasm.js';
+        s.onload = resolve; document.head.appendChild(s);
+      });
+    }
+    var SQL = await initSqlJs({ locateFile: function(f) { return 'https://sql.js.org/dist/' + f; } });
+    var mergedData = {
+      meta: { name: buildingName, filename: buildingName, elementCount: allElements.length, geomCount: allGeometries.length, disciplines: allDiscs, storeys: allStoreys.sort() },
+      elements: allElements, geometries: allGeometries, transforms: allTransforms
+    };
+    // §S260b: Yield to UI before heavy DB build (16K+ geometries = seconds of blocking)
+    await new Promise(function(r) { setTimeout(r, 50); });
+    var dbs = buildImportDBs(SQL, mergedData);
+
+    var projectKey = buildingName + '.ifc';
+    var newRecord = {
+      meta: mergedData.meta,
+      versions: [{ key: projectKey, importDate: new Date().toISOString(), db: dbs.extractedDb }],
+      latestVersion: 0
+    };
+    if (dbs.metaDb) newRecord.metaDb = dbs.metaDb;
+    if (dbs.geoDb) newRecord.geoDb = dbs.geoDb;
+    await saveProject(projectKey, newRecord);
+
+    console.log('[S224] §MULTI_IMPORT_DONE building=' + buildingName + ' elements=' + allElements.length +
+      ' files=' + files.length + ' discs=' + Object.keys(allDiscs).join(','));
+    if (status) status.textContent = 'Merged ' + files.length + ' files → ' + allElements.length + ' elements';
+    if (progressBar) { progressBar.style.width = '100%'; progressBar.style.background = '#44cc44'; }
+    setTimeout(function() { status.textContent = ''; progressBar.style.width = '0%'; progressBar.style.background = '#0277bd'; progressBar.parentElement.style.display = 'none'; }, 3000);
+    renderImportCards();
+  } catch (dbErr) {
+    console.log('[S224] §MULTI_DB_ERROR ' + dbErr.message);
+    if (status) status.textContent = 'DB merge failed: ' + dbErr.message;
+    if (progressBar) progressBar.style.background = '#cc4444';
+  }
+}
+
+// Wire drop zone
+const dropZone = document.getElementById('import-zone');
+const fileInput = document.getElementById('import-file-input');
+if (dropZone) {
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#0277bd'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'rgba(79,195,247,0.3)'; });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.style.borderColor = 'rgba(79,195,247,0.3)';
+    var files = e.dataTransfer.files;
+    var ifcFiles = [];
+    for (var i = 0; i < files.length; i++) { if (detectLandingFormat(files[i].name).route === 'ifc') ifcFiles.push(files[i]); }
+    if (ifcFiles.length > 1) { handleImportMultiIFC(ifcFiles); }
+    else { handleImportFile(files[0]); }
   });
-  document.addEventListener('mouseout',function(e){
-    if(e.target.closest('[data-trl-title]'))tip.style.display='none';
+  dropZone.addEventListener('click', () => { if (fileInput) fileInput.click(); });
+}
+if (fileInput) {
+  fileInput.addEventListener('change', () => {
+    var files = fileInput.files;
+    var ifcFiles = [];
+    for (var i = 0; i < files.length; i++) { if (detectLandingFormat(files[i].name).route === 'ifc') ifcFiles.push(files[i]); }
+    if (ifcFiles.length > 1) { handleImportMultiIFC(ifcFiles); }
+    else if (files.length) { handleImportFile(files[0]); }
+    fileInput.value = '';
   });
-  // Touch: briefly show on tap
-  document.addEventListener('touchstart',function(e){
-    var b=e.target.closest('[data-trl-title]');
-    if(!b)return;
-    show(b);setTimeout(function(){tip.style.display='none';},1800);
-  },{passive:true});
-})();
+}
+
+// Render existing imports
+renderImportCards();
+
+// ── S229: IFC Export — DB → .ifc download ──
+function showExportFlyout(triggerEl, projectKey) {
+  // Close any existing flyout
+  var old = document.querySelector('.export-flyout');
+  if (old) { old.remove(); return; }
+
+  var card = triggerEl.closest('.card');
+  var flyout = document.createElement('div');
+  flyout.className = 'export-flyout';
+  flyout.innerHTML =
+    '<div style="color:#0277bd;font-size:11px;font-weight:600;margin-bottom:8px">Export as:</div>' +
+    '<label><input type="radio" name="ef" value="ifc" checked> IFC (.ifc)</label>' +
+    '<label><input type="radio" name="ef" value="db"> SQLite (.db)</label>' +
+    '<div class="ef-row">' +
+      '<button class="ef-btn" style="background:rgba(79,195,247,0.15);border-color:rgba(79,195,247,0.3);color:#0277bd" data-go>Download</button>' +
+      '<button class="ef-btn" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:#888" data-cancel>Cancel</button>' +
+    '</div>' +
+    '<div class="ef-status" style="color:#aaa;font-size:10px;margin-top:6px"></div>';
+
+  card.appendChild(flyout);
+
+  flyout.querySelector('[data-cancel]').onclick = function(e) { e.stopPropagation(); flyout.remove(); };
+  flyout.querySelector('[data-go]').onclick = function(e) {
+    e.stopPropagation();
+    var format = flyout.querySelector('input[name=ef]:checked').value;
+    if (format === 'db') {
+      flyout.remove();
+      exportProjectDb(projectKey);
+    } else {
+      exportProjectIFC(projectKey, flyout);
+    }
+  };
+  flyout.onclick = function(e) { e.stopPropagation(); };
+
+  // Close on outside click
+  setTimeout(function() {
+    document.addEventListener('click', function closer() {
+      flyout.remove();
+      document.removeEventListener('click', closer);
+    }, { once: true });
+  }, 0);
+}
+
+async function exportProjectIFC(projectKey, flyout) {
+  var statusEl = flyout.querySelector('.ef-status');
+  var goBtn = flyout.querySelector('[data-go]');
+  goBtn.disabled = true;
+  goBtn.textContent = 'Exporting...';
+  statusEl.textContent = 'Reading database...';
+
+  var record = await getProject(projectKey);
+  if (!record || !record.versions.length) {
+    statusEl.textContent = 'No data found';
+    goBtn.disabled = false; goBtn.textContent = 'Download';
+    return;
+  }
+
+  // Load sql.js if needed
+  if (typeof initSqlJs === 'undefined') {
+    await new Promise(function(resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://sql.js.org/dist/sql-wasm.js';
+      s.onload = resolve;
+      document.head.appendChild(s);
+    });
+  }
+  var SQL = await initSqlJs({ locateFile: function(f) { return 'https://sql.js.org/dist/' + f; } });
+
+  // Read latest version DB
+  var latest = record.versions[record.latestVersion || 0];
+  var db = new SQL.Database(new Uint8Array(latest.db));
+
+  // Extract all data from DB
+  statusEl.textContent = 'Extracting elements...';
+  var elements = [], transforms = [], geometries = [];
+  var meta = {
+    buildingName: projectKey.replace(/\.(ifc|obj|stl|dae|glb|gltf|3ds|fbx)$/i, ''),
+    projectName: projectKey.replace(/\.(ifc|obj|stl|dae|glb|gltf|3ds|fbx)$/i, ''),
+    elementCount: record.meta.elementCount || 0
+  };
+
+  // Read project_metadata
+  try {
+    var pmRows = db.exec("SELECT key, value FROM project_metadata");
+    if (pmRows.length > 0) {
+      for (var r = 0; r < pmRows[0].values.length; r++) {
+        if (pmRows[0].values[r][0] === 'building_name') meta.buildingName = pmRows[0].values[r][1];
+        if (pmRows[0].values[r][0] === 'project_name') meta.projectName = pmRows[0].values[r][1];
+      }
+    }
+  } catch(e) {}
+
+  // Read elements
+  try {
+    var elRows = db.exec("SELECT guid, ifc_class, element_name, storey, discipline, material_rgba FROM elements_meta");
+    if (elRows.length > 0) {
+      for (var r = 0; r < elRows[0].values.length; r++) {
+        var row = elRows[0].values[r];
+        elements.push({ guid: row[0], ifcClass: row[1], name: row[2], storey: row[3], discipline: row[4], material: row[5] });
+      }
+    }
+  } catch(e) { statusEl.textContent = 'Error reading elements: ' + e.message; return; }
+
+  // Read transforms
+  try {
+    var txRows = db.exec("SELECT guid, center_x, center_y, center_z FROM element_transforms");
+    if (txRows.length > 0) {
+      for (var r = 0; r < txRows[0].values.length; r++) {
+        var row = txRows[0].values[r];
+        transforms.push({ guid: row[0], cx: row[1], cy: row[2], cz: row[3] });
+      }
+    }
+  } catch(e) {}
+
+  // Read guid→hash map + geometries in batches (avoids OOM on large buildings)
+  var guidHashMap = {};
+  try {
+    var instRows = db.exec("SELECT guid, geometry_hash FROM element_instances WHERE geometry_hash IS NOT NULL");
+    if (instRows.length > 0) {
+      for (var r = 0; r < instRows[0].values.length; r++) {
+        guidHashMap[instRows[0].values[r][0]] = instRows[0].values[r][1];
+      }
+    }
+    // Load unique geometries in batches using exec (compatible with all sql.js versions)
+    var usedHashes = Object.values(guidHashMap).filter(function(v,i,a) { return a.indexOf(v) === i; });
+    statusEl.textContent = 'Loading ' + usedHashes.length + ' unique geometries...';
+    var BATCH = 200;
+    for (var bi = 0; bi < usedHashes.length; bi += BATCH) {
+      var chunk = usedHashes.slice(bi, bi + BATCH);
+      var ph = chunk.map(function(h) { return "'" + h + "'"; }).join(',');
+      var geoRows = db.exec("SELECT geometry_hash, vertices, faces FROM component_geometries WHERE geometry_hash IN (" + ph + ")");
+      if (geoRows.length > 0) {
+        for (var r = 0; r < geoRows[0].values.length; r++) {
+          var row = geoRows[0].values[r];
+          geometries.push({ hash: row[0], vertices: row[1], faces: row[2] });
+        }
+      }
+      if (bi % 2000 === 0 && bi > 0) statusEl.textContent = 'Loading geometries... ' + Math.round(bi/usedHashes.length*100) + '%';
+    }
+  } catch(e) { console.error('Geo load error:', e); }
+
+  db.close();
+
+  statusEl.textContent = 'Building IFC (' + elements.length + ' elements)...';
+
+  // Send to export worker
+  var worker = new Worker('sandbox/ifc_export_worker.js?v=2');
+  worker.onmessage = function(e) {
+    var msg = e.data;
+    if (msg.type === 'progress') {
+      statusEl.textContent = msg.phase;
+      return;
+    }
+    if (msg.type === 'error') {
+      statusEl.textContent = 'Export failed: ' + msg.message;
+      goBtn.disabled = false; goBtn.textContent = 'Download';
+      worker.terminate();
+      return;
+    }
+    if (msg.type === 'done') {
+      var blob = new Blob([msg.ifcData], { type: 'application/octet-stream' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = meta.buildingName + '.ifc';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      statusEl.textContent = 'Downloaded ' + meta.buildingName + '.ifc (' + (msg.ifcData.byteLength / 1024).toFixed(0) + ' KB)';
+      goBtn.textContent = 'Done';
+      console.log('[S229] §EXPORT_IFC key=' + projectKey + ' size=' + (msg.ifcData.byteLength / 1024).toFixed(0) + 'KB elements=' + elements.length);
+      worker.terminate();
+      setTimeout(function() { flyout.remove(); }, 2000);
+    }
+  };
+  worker.onerror = function(err) {
+    statusEl.textContent = 'Worker error: ' + err.message;
+    goBtn.disabled = false; goBtn.textContent = 'Download';
+    worker.terminate();
+  };
+
+  worker.postMessage({ elements: elements, transforms: transforms, geometries: geometries, guidHashMap: guidHashMap, meta: meta });
+}
 </script>
+<script>if(new URLSearchParams(location.search).has('ignore-me'))localStorage.setItem('goatcounter-ignore','t')</script>
+<script data-goatcounter="https://red1oon.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+<!-- About dialog -->
+<div id="about-dialog" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);justify-content:center;align-items:center" onclick="if(event.target===this)this.classList.remove('active')">
+  <div style="background:rgba(10,10,30,0.97);border-radius:14px;padding:24px 28px;border:1px solid rgba(79,195,247,0.3);font-family:'Segoe UI',sans-serif;color:#e0e0e0;max-width:380px;width:90%;max-height:85vh;overflow-y:auto;text-align:center">
+    <img src="Sysnova.png" alt="Sysnova" style="height:50px;margin-bottom:8px;background:#f5f0e0;border-radius:6px;padding:4px 10px">
+    <div style="font-size:20px;font-weight:700;color:#e0e0e0">BIM</div>
+    <div style="font-size:12px;letter-spacing:3px;color:#888;margin-bottom:6px">Out Of The Box</div>
+    <div style="color:#888;font-size:11px;margin-bottom:8px">Version 0.6 alpha (October 2025 &#8211; April 2026)</div>
+    <div style="color:#aaa;font-size:11px;font-style:italic;margin-bottom:4px">Frictionless BIM. Two DBs. One browser. Zero install.</div>
+    <div style="color:#e8a735;font-size:10px;font-style:italic;margin-bottom:12px">Probably the lightest BIM app ever made.</div>
+
+    <table style="margin:0 auto 12px;font-size:10px;color:#999;border-collapse:collapse;text-align:left">
+      <tr><td style="padding:2px 8px 2px 0;color:#666">Three.js</td><td>r128</td></tr>
+      <tr><td style="padding:2px 8px 2px 0;color:#666">SQLite</td><td>3.44.2 (sql.js 1.10.3 WASM)</td></tr>
+      <tr><td style="padding:2px 8px 2px 0;color:#666">web-ifc</td><td>0.0.77 (IFC2x3 + IFC4)</td></tr>
+      <tr><td style="padding:2px 8px 2px 0;color:#666">SheetJS</td><td>0.20.3</td></tr>
+    </table>
+
+    <div style="margin-bottom:10px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:4px">
+      <div style="color:#666;font-size:9px;text-transform:uppercase;margin-bottom:3px">Browser Compatibility</div>
+      <div style="color:#999;font-size:10px;line-height:1.5">Chrome 90+ &#8226; Firefox 90+ &#8226; Safari 15+ &#8226; Edge 90+<br>Mobile: iOS Safari 15+ &#8226; Chrome Android<br>Requires: WebAssembly, WebGL 2, Web Workers</div>
+    </div>
+
+    <div style="margin-bottom:10px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:4px">
+      <div style="color:#666;font-size:9px;text-transform:uppercase;margin-bottom:3px">Stage 1 &#8212; Pure Browser (current)</div>
+      <div style="color:#999;font-size:10px;line-height:1.5">17K lines vanilla JS. No server, no APIs.<br>IFC parsed client-side. SQLite DBs ARE the app.</div>
+    </div>
+
+    <div style="margin-bottom:10px;padding:6px 8px;background:rgba(255,255,255,0.03);border-radius:4px">
+      <div style="color:#666;font-size:9px;text-transform:uppercase;margin-bottom:3px">Stage 2 &#8212; DAGCompiler Backend (planned)</div>
+      <div style="color:#999;font-size:10px;line-height:1.5">Java BOM engine: 2.1M lines &#8226; Python: 2.7M lines<br>SQL rules: 644K lines. Same two-DB output format.</div>
+    </div>
+
+    <div style="color:#888;font-size:10px;margin-bottom:4px">Copyright &#169; 2006 Redhuan D. Oon. MIT License.</div>
+    <div style="color:#666;font-size:9px;line-height:1.4;margin-bottom:10px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:4px">Permission is hereby granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of this software, subject to the above copyright notice and this permission notice.</div>
+    <div style="display:flex;justify-content:center;gap:12px;font-size:11px;margin-bottom:8px">
+      <a href="mailto:red1org@gmail.com" style="color:#0277bd;text-decoration:none">&#9993; Email</a>
+      <a href="https://github.com/red1oon/BIMCompiler" target="_blank" style="color:#0277bd;text-decoration:none">&#11088; GitHub</a>
+      <a href="javascript:void(0)" onclick="document.getElementById('about-dialog').classList.remove('active');if(window.APP&&APP.reportBug)APP.reportBug();else window.open('https://github.com/red1oon/BIMCompiler/issues/new?labels=bug','_blank')" style="color:#ff8a65;text-decoration:none">&#128027; Report Bug</a>
+    </div>
+    <a href="javascript:void(0)" onclick="document.getElementById('about-dialog').classList.remove('active');document.getElementById('diy-dialog').classList.add('active')" style="color:#e8a735;font-size:11px;text-decoration:none;cursor:pointer">&#128736; DIY Downloader</a>
+  </div>
+</div>
+<style>#about-dialog.active{display:flex!important}#diy-dialog.active{display:flex!important}</style>
+
+<!-- DIY Self-Host dialog -->
+<div id="diy-dialog" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:10000;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);justify-content:center;align-items:center" onclick="if(event.target===this)this.classList.remove('active')">
+  <div style="background:rgba(10,10,30,0.97);border-radius:14px;padding:24px 28px;border:1px solid rgba(232,167,53,0.4);font-family:'Segoe UI',sans-serif;color:#e0e0e0;max-width:420px;width:90%;max-height:85vh;overflow-y:auto;text-align:center">
+    <div style="font-size:28px;margin-bottom:8px">&#128736;&#65039;</div>
+    <div style="font-size:18px;font-weight:700;color:#e8a735;margin-bottom:4px">DIY Downloader</div>
+    <div style="color:#aaa;font-size:12px;font-style:italic;margin-bottom:16px">Download everything and run on your own machine!</div>
+
+    <div style="text-align:left;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px">
+      <div style="color:#e8a735;font-size:11px;font-weight:700;margin-bottom:8px">WHAT YOU GET:</div>
+      <div style="color:#ccc;font-size:11px;line-height:1.8">
+        &#10003; Complete BIM viewer (~49MB download, ~4MB viewer)<br>
+        &#10003; Libraries loaded from CDN on first use, then cached<br>
+        &#10003; Drop IFC / OBJ / DAE / GLB files to view<br>
+        &#10003; BOQ, 2D Plans, Section Cut, Walk Mode<br>
+        &#10003; Your own domain, your own branding<br>
+        &#10003; Still loads cloud buildings via URL if needed
+      </div>
+    </div>
+
+    <div style="text-align:left;margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.03);border-radius:8px">
+      <div style="color:#e8a735;font-size:11px;font-weight:700;margin-bottom:8px">THE SCRIPT WILL:</div>
+      <div style="color:#ccc;font-size:11px;line-height:1.8">
+        1. Check your system (Windows / Mac / Linux)<br>
+        2. Install Python 3 if not found<br>
+        3. Download BIM OOTB viewer + all libraries<br>
+        4. Start a local server on port 8080<br>
+        5. Open your browser &#8212; ready to use!
+      </div>
+    </div>
+
+    <a id="diy-download-btn" href="javascript:void(0)" onclick="downloadDIYScript()" style="display:inline-block;padding:10px 24px;background:#e8a735;color:#000;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;margin-bottom:12px;width:80%">&#11015; Download Install Script</a>
+
+    <div style="color:#666;font-size:9px;margin-top:8px">
+      Requires: Python 3 &#8226; Any modern browser<br>
+      No npm. No Node.js. No build tools.
+    </div>
+
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1)">
+      <div style="color:#555;font-size:9px;margin-bottom:8px">
+        &#169; 2025-2026 <a href="mailto:red1org@gmail.com" style="color:#0277bd;text-decoration:none">Redhuan D. Oon</a> (red1). MIT Licensed.<br>
+        Supported by <a href="https://www.sysnova.co.uk" target="_blank" style="color:#0277bd;text-decoration:none">Sysnova Information Systems Limited</a>
+      </div>
+      <a href="javascript:void(0)" onclick="document.getElementById('diy-dialog').classList.remove('active')" style="color:#888;font-size:11px;text-decoration:none;cursor:pointer">Close</a>
+    </div>
+  </div>
+</div>
+
 <script>
-if(new URLSearchParams(location.search).has('ignore-me'))localStorage.setItem('goatcounter-ignore','t');
-if(new URLSearchParams(location.search).get('embedded')!=='true'){
-  var gc=document.createElement('script');gc.dataset.goatcounter='https://red1oon.goatcounter.com/count';
-  gc.async=true;gc.src='//gc.zgo.at/count.js';document.body.appendChild(gc);
+function downloadDIYScript() {
+  var isWin = navigator.platform.indexOf('Win') > -1;
+  var script, filename, mime;
+
+  if (isWin) {
+    filename = 'bim-ootb-install.bat';
+    mime = 'application/x-bat';
+    script = [
+      '@echo off',
+      'echo ============================================',
+      'echo   BIM OOTB - Self-Host Installer (Windows)',
+      'echo   Copyright (c) 2025-2026 Redhuan D. Oon',
+      'echo ============================================',
+      'echo.',
+      '',
+      'REM Check Python',
+      'python --version >nul 2>&1',
+      'if errorlevel 1 (',
+      '  echo [!] Python not found. Installing via winget...',
+      '  winget install Python.Python.3.12 --accept-package-agreements --accept-source-agreements',
+      '  if errorlevel 1 (',
+      '    echo [!] winget failed. Please install Python from https://python.org/downloads',
+      '    pause',
+      '    exit /b 1',
+      '  )',
+      '  echo [OK] Python installed. You may need to restart this script.',
+      ') else (',
+      '  echo [OK] Python found.',
+      ')',
+      '',
+      'set DEST=%USERPROFILE%\\bim-ootb',
+      'if not exist "%DEST%" mkdir "%DEST%"',
+      'cd /d "%DEST%"',
+      '',
+      'echo Downloading BIM OOTB viewer...',
+      'curl -sL -o bim-ootb.zip "https://github.com/red1oon/BIMCompiler/archive/refs/heads/full.zip"',
+      'if errorlevel 1 (',
+      '  echo [!] Download failed. Check your internet connection.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      '',
+      'echo Extracting...',
+      'powershell -Command "Expand-Archive -Path bim-ootb.zip -DestinationPath _tmp -Force"',
+      'xcopy /s /e /y _tmp\\BIMCompiler-full\\deploy\\dev\\* . >nul',
+      'rmdir /s /q _tmp',
+      'del bim-ootb.zip',
+      '',
+      'echo.',
+      'echo   BIM OOTB installed to: %DEST%',
+      'echo   Starting server on http://localhost:8080',
+      'echo.',
+      'start http://localhost:8080',
+      'python -m http.server 8080',
+    ].join('\r\n');
+  } else {
+    filename = 'bim-ootb-install.sh';
+    mime = 'application/x-sh';
+    script = [
+      '#!/usr/bin/env bash',
+      '# BIM OOTB - Self-Host Installer (Mac/Linux)',
+      '# Copyright (c) 2025-2026 Redhuan D. Oon. MIT Licensed.',
+      'set -e',
+      'echo ""',
+      'echo "============================================"',
+      'echo "  BIM OOTB - Self-Host Installer"',
+      'echo "  Copyright (c) 2025-2026 Redhuan D. Oon"',
+      'echo "============================================"',
+      'echo ""',
+      '',
+      'if command -v python3 &>/dev/null; then',
+      '  echo "[OK] Python 3 found: $(python3 --version)"',
+      'else',
+      '  echo "[!] Python 3 not found. Installing..."',
+      '  if [[ "$OSTYPE" == "darwin"* ]]; then',
+      '    if command -v brew &>/dev/null; then brew install python3',
+      '    else echo "[!] Install Homebrew first: https://brew.sh"; exit 1; fi',
+      '  else',
+      '    sudo apt-get update && sudo apt-get install -y python3 || \\',
+      '    sudo dnf install -y python3 || sudo pacman -S --noconfirm python',
+      '  fi',
+      '  echo "[OK] Python 3 installed."',
+      'fi',
+      '',
+      'DEST="$HOME/bim-ootb"',
+      'mkdir -p "$DEST" && cd "$DEST"',
+      'echo "Downloading BIM OOTB viewer..."',
+      'curl -sL -o bim-ootb.zip "https://github.com/red1oon/BIMCompiler/archive/refs/heads/full.zip"',
+      'echo "Extracting..."',
+      'unzip -qo bim-ootb.zip "BIMCompiler-full/deploy/dev/*" -d _tmp',
+      'cp -r _tmp/BIMCompiler-full/deploy/dev/* . && rm -rf _tmp bim-ootb.zip',
+      '',
+      'echo ""',
+      'echo "  BIM OOTB installed to: $DEST"',
+      'echo "  Starting server on http://localhost:8080"',
+      'echo ""',
+      'if [[ "$OSTYPE" == "darwin"* ]]; then open http://localhost:8080 &',
+      'elif command -v xdg-open &>/dev/null; then xdg-open http://localhost:8080 &; fi',
+      'python3 -m http.server 8080',
+    ].join('\n');
+  }
+
+  var blob = new Blob([script], { type: mime });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  document.getElementById('diy-download-btn').textContent = '\u2705 Downloaded! Run the script to install.';
+  document.getElementById('diy-download-btn').style.background = '#44cc44';
 }
 </script>
 <script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js?v=435')
-    .then(function(r){console.log('§SW_REG scope='+r.scope)})
-    .catch(function(e){console.warn('§SW_REG_FAIL',e)});
-}
+// ── S250 §9: Load Community Projects from contributed/index.json ──
+(async function() {
+  var section = document.getElementById('community-section');
+  var grid = document.getElementById('community-grid');
+  if (!section || !grid) return;
+  var indexUrl = (_base || '') + 'contributed/index.json';
+  try {
+    var resp = await fetch(indexUrl);
+    if (!resp.ok) { console.log('§COMMUNITY skip — index.json HTTP ' + resp.status); return; }
+    var entries = await resp.json();
+    if (!Array.isArray(entries) || entries.length === 0) { console.log('§COMMUNITY skip — empty'); return; }
+    console.log('§COMMUNITY loaded entries=' + entries.length);
+    section.style.display = 'block';
+    grid.innerHTML = '';
+    for (var i = 0; i < entries.length; i++) {
+      var entry = entries[i];
+      var card = document.createElement('div');
+      card.className = 'card';
+      var discs = entry.disciplines || [];
+      var discBars = discs.map(function(d) {
+        var color = DISC_COLORS[d] || '#888';
+        return '<span class="disc-bar" style="width:' + Math.max(20, 100 / discs.length) + '%;background:' + color + '" title="' + d + '"></span>';
+      }).join('');
+      var region = '';
+      if (entry.timezone) {
+        var parts = entry.timezone.split('/');
+        region = parts.length > 1 ? parts[0] : entry.timezone;
+      }
+      var dateStr = entry.date ? new Date(entry.date).toLocaleDateString() : '';
+      var displayName = (entry.filename || '').replace(/_extracted\.db$/i, '').replace(/\.[^.]+$/, '');
+      card.innerHTML =
+        '<div class="name">' + displayName + '</div>' +
+        '<div class="meta">' +
+          '<b>' + ((entry.elements || 0).toLocaleString()) + '</b> elements' +
+          (discs.length ? ' &middot; ' + discs.join(', ') : '') +
+          (region ? '<br>' + region : '') +
+          (dateStr ? ' &middot; ' + dateStr : '') +
+        '</div>' +
+        '<div class="disc-bars">' + discBars + '</div>' +
+        '<button class="open-btn" data-contributed="' + entry.filename + '">Open 3D Viewer &#9889;</button>';
+      card.querySelector('[data-contributed]').onclick = function() {
+        var fname = this.dataset.contributed;
+        var bldBase = _prodBase + 'contributed/';
+        var viewerUrl = (_base || '') + 'sandbox/index.html';
+        var url = viewerUrl + '?db=' + encodeURIComponent(bldBase + fname);
+        console.log('§COMMUNITY open file=' + fname);
+        window.open(url, '_blank');
+      };
+      grid.appendChild(card);
+    }
+  } catch(e) {
+    console.log('§COMMUNITY error ' + e.message);
+  }
+})();
 </script>
+<script src="sandbox/locale_loader.js?v=7"></script>
+<script>
+window.addEventListener('trl-ready', function() {
+  var btn = document.getElementById('header-flag-btn');
+  if (btn && window._TRL_LOADER) {
+    var code = _TRL_LOADER.detectLocale();
+    _TRL_LOADER.AVAILABLE_LOCALES.forEach(function(loc) {
+      if (loc.code === code) btn.textContent = _TRL_LOADER.isoToFlag(loc.iso);
+    });
+  }
+});
+</script>
+
+
 </body>
 </html>
