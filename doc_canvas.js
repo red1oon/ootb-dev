@@ -383,10 +383,11 @@ function _resortLabels() {
 function _buildEnvelope(A) {
   // §S267: Envelope from BOM root AABB when BOM.db available (recipe, not scatter)
   var env;
-  // §S267: try BOM data from A.db (merged) or A._bomDb (standalone)
+  // §S267: try BOM data from A._bomDb (standalone) or A.db (merged extracted)
   var _envBomDb = A._bomDb || A.db;
   if (_envBomDb && window.BOMWalker) {
-    var boms = BOMWalker.listBoms(_envBomDb);
+    // Guard: check if m_bom table exists before querying
+    try { var boms = BOMWalker.listBoms(_envBomDb); } catch(e) { boms = []; }
     var building = null;
     for (var bi = 0; bi < boms.length; bi++) {
       if (boms[bi].bomType === 'BUILDING') { building = boms[bi]; break; }
@@ -680,11 +681,16 @@ function _loadPhases(A) {
   // Use A._bomDb if set (standalone BOM.db), else try A.db (merged extracted DB).
   var bomDb = A._bomDb || A.db;
   if (!bomDb || !window.BOMWalker || !window.VerbExpand) {
-    console.log('§DOC_PHASES no BOM data — phases disabled');
+    console.log('§DOC_PHASES no BOM data — phases disabled (no db/modules)');
     return;
   }
 
-  var boms = BOMWalker.listBoms(bomDb);
+  // Guard: m_bom table may not exist in older cached extracted DBs
+  var boms;
+  try { boms = BOMWalker.listBoms(bomDb); } catch(e) {
+    console.log('§DOC_PHASES no m_bom table in DB — phases disabled');
+    return;
+  }
   var building = null;
   for (var bi = 0; bi < boms.length; bi++) {
     if (boms[bi].bomType === 'BUILDING') { building = boms[bi]; break; }
