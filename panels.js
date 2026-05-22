@@ -991,25 +991,28 @@ function setupPanels(A) {
     if (A._bomDb) return; // already loaded
     if (!buildingName || !window.initSqlJs) return;
 
-    // Derive prefix: first 2 chars uppercase (HITOS→HI, Terminal→TE, etc.)
-    // Or use full building name if no pattern match
-    var prefix = buildingName.replace(/_extracted$/, '').replace(/_meta$/, '');
+    // Derive BOM name: strip IFC schema prefix + _extracted/_meta suffixes
+    // Ifc2x3_SampleCastle → SampleCastle, HITOS_extracted → HITOS
+    var bomName = buildingName
+      .replace(/^Ifc2x3_/i, '').replace(/^Ifc4_/i, '')
+      .replace(/_extracted$/, '').replace(/_meta$/, '');
 
     // Try IndexedDB cache first
-    _idbGet(BOM_IDB_STORE, prefix + '_BOM', function(cached) {
+    _idbGet(BOM_IDB_STORE, bomName + '_BOM', function(cached) {
       if (cached) {
-        _openBomDb(A, cached, prefix, 'cache');
+        _openBomDb(A, cached, bomName, 'cache');
         return;
       }
-      // Resolve URL: same base as building DB, but _BOM.db suffix
+      // Resolve URL: same base as building DB, replace _extracted.db → _BOM.db
       var dbUrl = A.DB_URL || '';
       var bomUrl = '';
-      if (dbUrl.indexOf('buildings/') !== -1) {
-        bomUrl = dbUrl.replace(/\/[^/]+$/, '/' + prefix + '_BOM.db');
-      } else if (dbUrl.indexOf('objectstorage') !== -1) {
-        bomUrl = dbUrl.replace(/\/[^/]+$/, '/' + prefix + '_BOM.db');
+      if (dbUrl.indexOf('_extracted.db') !== -1) {
+        // Direct replacement: SampleCastle_extracted.db → SampleCastle_BOM.db
+        bomUrl = dbUrl.replace(/_extracted\.db.*$/, '_BOM.db');
+      } else if (dbUrl.indexOf('buildings/') !== -1) {
+        bomUrl = dbUrl.replace(/\/[^/]+$/, '/' + bomName + '_BOM.db');
       } else {
-        bomUrl = 'buildings/' + prefix + '_BOM.db';
+        bomUrl = 'buildings/' + bomName + '_BOM.db';
       }
       console.log('§BOM_DB_FETCH url=' + bomUrl);
       fetch(bomUrl).then(function(resp) {
@@ -1021,19 +1024,26 @@ function setupPanels(A) {
       }).then(function(buf) {
         if (!buf) return;
         // Cache in IndexedDB
-        _idbPut(BOM_IDB_STORE, prefix + '_BOM', new Uint8Array(buf));
-        _openBomDb(A, new Uint8Array(buf), prefix, 'fetch');
+        _idbPut(BOM_IDB_STORE, bomName + '_BOM', new Uint8Array(buf));
+        _openBomDb(A, new Uint8Array(buf), bomName, 'fetch');
       }).catch(function(e) {
         console.log('§BOM_DB_FETCH err=' + e.message);
       });
     });
   }
 
-  function _openBomDb(A, buf, prefix, source) {
+  function _openBomDb(A, buf, bomName, source) {
     initSqlJs({ locateFile: function(f) { return 'lib/' + f; } }).then(function(SQL) {
       A._bomDb = new SQL.Database(buf);
-      console.log('§BOM_DB_READY prefix=' + prefix + ' source=' + source +
+      console.log('§BOM_DB_READY name=' + bomName + ' source=' + source +
         ' size=' + (buf.byteLength / 1024).toFixed(0) + 'KB');
+      // §S267: BOM.db loaded after Doc canvas activated — reload phases
+      if (window.DocCanvas && DocCanvas.isActive()) {
+        // Deactivate and reactivate to rebuild envelope + phases from BOM
+        DocCanvas.deactivate(A);
+        DocCanvas.activate(A);
+        console.log('§BOM_DB_RELOAD reactivated Doc canvas with BOM.db');
+      }
     }).catch(function(e) {
       console.warn('§BOM_DB_OPEN err=' + e.message);
     });

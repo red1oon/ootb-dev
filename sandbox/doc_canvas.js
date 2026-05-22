@@ -383,14 +383,16 @@ function _resortLabels() {
 function _buildEnvelope(A) {
   // §S267: Envelope from BOM root AABB when BOM.db available (recipe, not scatter)
   var env;
-  if (A._bomDb && window.BOMWalker) {
-    var boms = BOMWalker.listBoms(A._bomDb);
+  // §S267: try BOM data from A.db (merged) or A._bomDb (standalone)
+  var _envBomDb = A._bomDb || A.db;
+  if (_envBomDb && window.BOMWalker) {
+    var boms = BOMWalker.listBoms(_envBomDb);
     var building = null;
     for (var bi = 0; bi < boms.length; bi++) {
       if (boms[bi].bomType === 'BUILDING') { building = boms[bi]; break; }
     }
     if (building) {
-      var rootRows = BOMWalker._query(A._bomDb,
+      var rootRows = BOMWalker._query(_envBomDb,
         "SELECT origin_x, origin_y, origin_z, aabb_width_mm, aabb_depth_mm, aabb_height_mm " +
         "FROM m_bom WHERE bom_id = '" + building.bomId.replace(/'/g, "''") + "'");
       if (rootRows.length) {
@@ -674,13 +676,15 @@ function _classifyTier(role) {
 function _loadPhases(A) {
   _phases = [];
 
-  // BOM.db required — no BOM.db, no phases, no Next
-  if (!A._bomDb || !window.BOMWalker || !window.VerbExpand) {
-    console.log('§DOC_PHASES no BOM.db — phases disabled');
+  // §S267: BOM data lives in the building's extracted DB (m_bom + m_bom_line tables).
+  // Use A._bomDb if set (standalone BOM.db), else try A.db (merged extracted DB).
+  var bomDb = A._bomDb || A.db;
+  if (!bomDb || !window.BOMWalker || !window.VerbExpand) {
+    console.log('§DOC_PHASES no BOM data — phases disabled');
     return;
   }
 
-  var boms = BOMWalker.listBoms(A._bomDb);
+  var boms = BOMWalker.listBoms(bomDb);
   var building = null;
   for (var bi = 0; bi < boms.length; bi++) {
     if (boms[bi].bomType === 'BUILDING') { building = boms[bi]; break; }
@@ -696,7 +700,7 @@ function _loadPhases(A) {
 
   function _cf() { return floorStack.length ? floorStack[floorStack.length - 1] : null; }
 
-  BOMWalker.walk(A._bomDb, rootId, {
+  BOMWalker.walk(bomDb, rootId, {
     onSubAssembly: function(ctx) {
       var childType = ctx.childBom ? ctx.childBom.bomType : null;
       if (childType === 'FLOOR' || childType === 'MEP') {
@@ -1598,7 +1602,8 @@ function recomposeAfterGridDrag(A) {
   if (!anyDelta) return;
 
   // Path A: OOTB — verb expansion via BOMWalker + VerbExpand
-  if (A._bomDb && window.BOMWalker && window.VerbExpand) {
+  var _recompBomDb = A._bomDb || A.db;
+  if (_recompBomDb && window.BOMWalker && window.VerbExpand) {
     _recomposeOOTB(A, deltas);
     return;
   }
@@ -1614,7 +1619,7 @@ function recomposeAfterGridDrag(A) {
  * For TILE verbs: recalculate count from new bay width.
  */
 function _recomposeOOTB(A, deltas) {
-  var bomDb = A._bomDb;
+  var bomDb = A._bomDb || A.db;
   var moved = 0;
 
   // Collect all leaves with verb_ref
