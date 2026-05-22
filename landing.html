@@ -372,7 +372,7 @@ const BUILDINGS = {
   'Ifc2x3_AC11Institute': { db: 'AC11Institute_extracted.db' },
   'Duplex': { db: 'Duplex_extracted.db' },
   'LTU_AHouse': { db: 'LTU_AHouse_extracted.db' },
-  'Hospital': { db: 'hospital.db' },
+  'Hospital': { db: 'Hospital_extracted.db' },
   'Hospital_3': { db: 'Hospital_3_extracted.db' },
   'Terminal': { db: 'Terminal_extracted.db' },
   'Clinic': { db: 'Clinic_extracted.db' },
@@ -634,8 +634,12 @@ const CACHE_DB_NAME = 'bim_ootb_cache';
 const CACHE_STORE = 'dbs';
 function openCacheDB() {
   return new Promise(resolve => {
-    const req = indexedDB.open(CACHE_DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(CACHE_STORE);
+    const req = indexedDB.open(CACHE_DB_NAME, 2);
+    req.onupgradeneeded = function() {
+      var db = req.result;
+      if (!db.objectStoreNames.contains(CACHE_STORE)) db.createObjectStore(CACHE_STORE);
+      if (!db.objectStoreNames.contains('timestamps')) db.createObjectStore('timestamps');
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => resolve(null);
   });
@@ -953,7 +957,7 @@ async function renderImportCards() {
       if (!document._shareLoaded) {
         var script = document.createElement('script');
         script.src = 'sandbox/share.js?v=1';
-        script.onload = function() { document._shareLoaded = true; A.openShareSheet(shareKey); };
+        script.onload = function() { setupShare(A); document._shareLoaded = true; A.openShareSheet(shareKey); };
         script.onerror = function() { alert('Failed to load share module'); };
         document.head.appendChild(script);
       } else { A.openShareSheet(shareKey); }
