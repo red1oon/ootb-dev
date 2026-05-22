@@ -27,6 +27,7 @@ var _guidToSlot = {};    // guid → {mesh, slotId} — fast lookup for BatchedM
 var _guidToInstance = {}; // guid → {mesh, index, origMatrix} — fast lookup for InstancedMesh
 var _activeDisc = 'ARC'; // active discipline for Next — default ARC
 var _shownCount = 0;     // running count of elements revealed by Next
+var _appRef = null;      // §S268: reference to A for mesh traversal in helpers
 
 // ── IFC class → grid strategy table (data, not code) ────────────────────────
 // Each entry: { axes: 'XZ'|'long'|'none', desc: string }
@@ -84,6 +85,7 @@ function activate(A) {
     return;
   }
   _active = true;
+  _appRef = A;
 
   // Create root group
   _group = new THREE.Group();
@@ -268,6 +270,7 @@ function nextPhase(A) {
   }
   var phase = filtered[_phaseIndex];
   _materializePhase(A, phase);
+  _kinEngineDirty = true; // §S270: new elements revealed, rebuild engine on next drag
 
   // §17.9B: No auto-grid. User taps wall/element → grid line appears.
   // Auto-grid removed: was flooding canvas with 200+ lines from hospital walls.
@@ -1551,6 +1554,7 @@ function _scrubToPhase(A, targetIdx) {
   _renderGrid(A);
   _updateHud();
   _updateTimeline();
+  _kinEngineDirty = true; // §S270: phases changed, rebuild engine
 
   console.log('§DOC_SCRUB to=' + (targetIdx + 1) + '/' + filtered.length +
     ' elements=' + _shownCount);
@@ -1575,9 +1579,17 @@ function prevPhase(A) {
   console.log('§DOC_PREV phase=' + (_phaseIndex + 1));
 }
 
-// ── §S267: Recomposition — verb expansion + grid delta ─────────────────────
-// _gridOriginals: snapshot of grid positions at envelope activation (baseline for deltas)
+// ── §S270: Recomposition via GridKinematicEngine ────────────────────────────
+// Engine owns ALL recomposition math. doc_canvas.js is a thin caller:
+//   1. _collectElementData(A)  → builds [{guid, x, y, z, bbox*, ifcClass, ...}]
+//   2. _collectGridLines()     → builds [{id, axis, pos}]
+//   3. engine.dragGrid(id, d)  → returns command objects
+//   4. _applyCommand(cmd)      → writes to Three.js meshes
+// Only _collectElementData and _applyCommand touch Three.js.
+
 var _gridOriginals = { x: [], z: [] };
+var _kinEngine = null;       // GridKinematicEngine instance (lazy, rebuilt when dirty)
+var _kinEngineDirty = true;  // rebuild on next drag (phases changed, etc.)
 
 /**
  * _snapshotGridOriginals() — called once at activate, records the initial grid positions.
@@ -1586,30 +1598,275 @@ var _gridOriginals = { x: [], z: [] };
 function _snapshotGridOriginals() {
   _gridOriginals.x = _xPositions.slice();
   _gridOriginals.z = _zPositions.slice();
+  _kinEngineDirty = true;
 }
 
 /**
  * _computeGridDeltas() — compute per-axis deltas from original grid positions.
- * Returns { x: [{pos, delta}], z: [{pos, delta}] }
+ * Returns { x: [{pos, orig, delta, idx}], z: [{pos, orig, delta, idx}] }
  */
 function _computeGridDeltas() {
   var deltas = { x: [], z: [] };
   for (var i = 0; i < _xPositions.length; i++) {
     var orig = i < _gridOriginals.x.length ? _gridOriginals.x[i] : _xPositions[i];
-    deltas.x.push({ pos: _xPositions[i], orig: orig, delta: _xPositions[i] - orig });
+    deltas.x.push({ pos: _xPositions[i], orig: orig, delta: _xPositions[i] - orig, idx: i });
   }
   for (var j = 0; j < _zPositions.length; j++) {
     var origZ = j < _gridOriginals.z.length ? _gridOriginals.z[j] : _zPositions[j];
-    deltas.z.push({ pos: _zPositions[j], orig: origZ, delta: _zPositions[j] - origZ });
+    deltas.z.push({ pos: _zPositions[j], orig: origZ, delta: _zPositions[j] - origZ, idx: j });
   }
   return deltas;
 }
 
 /**
- * recomposeAfterGridDrag(A) — re-expand verbs and reposition elements after grid drag.
- *
- * Path A (OOTB, A._bomDb available): Walk BOM, re-expand verb_ref with updated grid coords.
- * Path B (IFC Drop, no BOM.db): Apply delta from nearest grid line to element transforms.
+ * _getMeshPosition(guid) — read current mesh position for a GUID.
+ * Returns {x, y, z, scaleX, scaleY, scaleZ} or null.
+ */
+function _getMeshPosition(guid) {
+  var slot = _guidToSlot[guid];
+  if (slot) {
+    var mat = new THREE.Matrix4();
+    slot.mesh.getMatrixAt(slot.slotId, mat);
+    var pos = new THREE.Vector3();
+    var scale = new THREE.Vector3();
+    pos.setFromMatrixPosition(mat);
+    scale.setFromMatrixScale(mat);
+    return { x: pos.x, y: pos.y, z: pos.z, scaleX: scale.x, scaleY: scale.y, scaleZ: scale.z };
+  }
+  var inst = _guidToInstance[guid];
+  if (inst) {
+    var imat = new THREE.Matrix4();
+    inst.mesh.getMatrixAt(inst.index, imat);
+    var ipos = new THREE.Vector3();
+    var iscale = new THREE.Vector3();
+    ipos.setFromMatrixPosition(imat);
+    iscale.setFromMatrixScale(imat);
+    return { x: ipos.x, y: ipos.y, z: ipos.z, scaleX: iscale.x, scaleY: iscale.y, scaleZ: iscale.z };
+  }
+  return null;
+}
+
+/**
+ * _getShownGuids() — collect all GUIDs currently revealed by the phase stepper.
+ */
+function _getShownGuids() {
+  var shownGuids = [];
+  var filtered = _phases.filter(function(p) { return !_activeDisc || p.disc === _activeDisc; });
+  for (var fi = 0; fi <= _phaseIndex && fi < filtered.length; fi++) {
+    shownGuids = shownGuids.concat(filtered[fi].guids);
+  }
+  return shownGuids;
+}
+
+/**
+ * _collectElementData(A) — read mesh positions + DB bbox for all shown GUIDs.
+ * Builds the elementData array that GridKinematicEngine needs.
+ * This is the ONLY place that reads Three.js state for the engine.
+ */
+function _collectElementData(A) {
+  var shownGuids = _getShownGuids();
+  if (!shownGuids.length) return [];
+
+  // Read bbox + ifcClass from extracted DB
+  var bboxLookup = {};
+  var classLookup = {};
+  if (A.db) {
+    try {
+      var rows = A.db.exec("SELECT guid, bbox_x, bbox_y, bbox_z FROM element_transforms");
+      if (rows.length && rows[0].values) {
+        for (var ri = 0; ri < rows[0].values.length; ri++) {
+          var r = rows[0].values[ri];
+          bboxLookup[r[0]] = { bboxX: r[1] || 0, bboxY: r[2] || 0, bboxZ: r[3] || 0 };
+        }
+      }
+    } catch(e) { /* bbox optional — columns may not exist */ }
+    try {
+      var crows = A.db.exec("SELECT guid, ifc_class FROM elements_meta");
+      if (crows.length && crows[0].values) {
+        for (var ci = 0; ci < crows[0].values.length; ci++) {
+          classLookup[crows[0].values[ci][0]] = crows[0].values[ci][1] || '';
+        }
+      }
+    } catch(e2) { /* class optional */ }
+  }
+
+  var elements = [];
+  for (var gi = 0; gi < shownGuids.length; gi++) {
+    var guid = shownGuids[gi];
+    var mpos = _getMeshPosition(guid);
+    if (!mpos) continue;
+
+    var bbox = bboxLookup[guid] || { bboxX: 0, bboxY: 0, bboxZ: 0 };
+    elements.push({
+      guid: guid,
+      x: mpos.x,
+      y: mpos.y,
+      z: mpos.z,
+      bboxX: bbox.bboxX,
+      bboxY: bbox.bboxY,
+      bboxZ: bbox.bboxZ,
+      ifcClass: classLookup[guid] || '',
+      scaleX: mpos.scaleX,
+      scaleY: mpos.scaleY,
+      scaleZ: mpos.scaleZ
+    });
+  }
+  return elements;
+}
+
+/**
+ * _collectGridLines() — build gridLines array from current grid state.
+ * Uses grid labels as IDs (e.g. 'A', 'B', '1', '2').
+ */
+function _collectGridLines() {
+  var lines = [];
+  for (var xi = 0; xi < _gridOriginals.x.length; xi++) {
+    lines.push({
+      id: _xLabels[xi] || ('X' + xi),
+      axis: 'x',
+      pos: _gridOriginals.x[xi]
+    });
+  }
+  for (var zi = 0; zi < _gridOriginals.z.length; zi++) {
+    lines.push({
+      id: _zLabels[zi] || ('Z' + zi),
+      axis: 'z',
+      pos: _gridOriginals.z[zi]
+    });
+  }
+  return lines;
+}
+
+/**
+ * _rebuildEngine(A) — construct a fresh GridKinematicEngine from current state.
+ */
+function _rebuildEngine(A) {
+  if (typeof GridKinematics === 'undefined' || !GridKinematics.GridKinematicEngine) {
+    console.warn('§RECOMPOSE grid_kinematics.js not loaded — falling back');
+    _kinEngine = null;
+    return;
+  }
+  var elementData = _collectElementData(A);
+  var gridLines = _collectGridLines();
+  _kinEngine = new GridKinematics.GridKinematicEngine(elementData, gridLines);
+  _kinEngine.attachGridToElements();
+  _kinEngineDirty = false;
+
+  var map = _kinEngine.getAttachMap();
+  var totalAttached = 0;
+  for (var k in map) {
+    totalAttached += map[k].length;
+  }
+  console.log('§RECOMPOSE_ENGINE built elements=' + elementData.length +
+    ' grids=' + gridLines.length + ' attached=' + totalAttached +
+    ' interior=' + _kinEngine.getInteriorElements().length);
+}
+
+/**
+ * _applyCommand(cmd) — apply one engine command to Three.js meshes.
+ * This is the ONLY place that writes to Three.js from recomposition.
+ */
+function _applyCommand(cmd) {
+  switch (cmd.action) {
+    case 'TRANSLATE':
+      _translateMesh(cmd.guid, cmd.axis, cmd.delta);
+      break;
+    case 'SCALE':
+      _scaleMeshFromCommand(cmd);
+      break;
+    case 'ROOF_VERTICES':
+      _applyRoofVertices(cmd);
+      break;
+    case 'ROOF_LIFT':
+      _applyRoofLift(cmd);
+      break;
+  }
+}
+
+/**
+ * _scaleMeshFromCommand — apply SCALE command from engine.
+ * Engine provides newScale and translateDelta directly.
+ */
+function _scaleMeshFromCommand(cmd) {
+  var matIdx = cmd.axis === 'x' ? 12 : (cmd.axis === 'z' ? 14 : 13);
+  var scaleIdx = cmd.axis === 'x' ? 0 : (cmd.axis === 'z' ? 10 : 5);
+
+  var slot = _guidToSlot[cmd.guid];
+  if (slot) {
+    var mat = new THREE.Matrix4();
+    slot.mesh.getMatrixAt(slot.slotId, mat);
+    mat.elements[scaleIdx] = cmd.newScale;
+    if (cmd.translateDelta) mat.elements[matIdx] += cmd.translateDelta;
+    slot.mesh.setMatrixAt(slot.slotId, mat);
+    slot.mesh.instanceMatrix.needsUpdate = true;
+    return;
+  }
+  var inst = _guidToInstance[cmd.guid];
+  if (inst) {
+    var imat = new THREE.Matrix4();
+    inst.mesh.getMatrixAt(inst.index, imat);
+    imat.elements[scaleIdx] = cmd.newScale;
+    if (cmd.translateDelta) imat.elements[matIdx] += cmd.translateDelta;
+    inst.mesh.setMatrixAt(inst.index, imat);
+    inst.mesh.instanceMatrix.needsUpdate = true;
+    return;
+  }
+}
+
+/**
+ * _applyRoofVertices — apply per-vertex deltas to a roof mesh's BufferGeometry.
+ */
+function _applyRoofVertices(cmd) {
+  if (!cmd.vertexDeltas) return;
+  var mesh = _findMeshByGuid(cmd.guid);
+  if (!mesh || !mesh.geometry || !mesh.geometry.attributes.position) return;
+  var positions = mesh.geometry.attributes.position.array;
+  var vd = cmd.vertexDeltas;
+  for (var i = 0; i < vd.length && i < positions.length; i++) {
+    positions[i] += vd[i];
+  }
+  mesh.geometry.attributes.position.needsUpdate = true;
+  mesh.geometry.computeBoundingBox();
+  mesh.geometry.computeBoundingSphere();
+}
+
+/**
+ * _applyRoofLift — translate all vertices of a roof mesh on Y axis.
+ */
+function _applyRoofLift(cmd) {
+  var mesh = _findMeshByGuid(cmd.guid);
+  if (!mesh || !mesh.geometry || !mesh.geometry.attributes.position) return;
+  var positions = mesh.geometry.attributes.position.array;
+  var nVerts = positions.length / 3;
+  for (var i = 0; i < nVerts; i++) {
+    positions[i * 3 + 1] += cmd.deltaY; // Y component
+  }
+  mesh.geometry.attributes.position.needsUpdate = true;
+  mesh.geometry.computeBoundingBox();
+  mesh.geometry.computeBoundingSphere();
+}
+
+/**
+ * _findMeshByGuid — find a Three.js mesh for a GUID (for vertex-level ops).
+ */
+function _findMeshByGuid(guid) {
+  // BatchedMesh / InstancedMesh don't have per-instance geometry — roof vertex
+  // ops only work on single-mesh path. In practice, roofs are typically single meshes.
+  if (_appRef && _appRef.scene) {
+    var found = null;
+    _appRef.scene.traverse(function(obj) {
+      if (!found && obj.userData && obj.userData.guid === guid && obj.isMesh) {
+        found = obj;
+      }
+    });
+    return found;
+  }
+  return null;
+}
+
+/**
+ * recomposeAfterGridDrag(A) — §S270 engine-driven recompose.
+ * Delegates all math to GridKinematicEngine. Only applies commands to meshes.
  */
 function recomposeAfterGridDrag(A) {
   if (!_active || !A) return;
@@ -1619,160 +1876,83 @@ function recomposeAfterGridDrag(A) {
                  deltas.z.some(function(d) { return Math.abs(d.delta) > 0.01; });
   if (!anyDelta) return;
 
-  // §S267: Apply nearest-grid-delta to all visible elements.
-  // Same logic for OOTB and IFC Drop — shift meshes by nearest grid line's delta.
-  // Future: OOTB verb re-expansion for tile count recalculation (S268).
-  _recomposeIFCDrop(A, deltas);
+  // Rebuild engine if dirty (phases changed since last build)
+  if (_kinEngineDirty || !_kinEngine) _rebuildEngine(A);
+  if (!_kinEngine) return; // grid_kinematics.js not loaded
+
+  var translated = 0, scaled = 0, roofOps = 0, bayMoved = 0;
+
+  // For each grid line that moved, call engine and apply commands
+  for (var xi = 0; xi < deltas.x.length; xi++) {
+    var dx = deltas.x[xi];
+    if (Math.abs(dx.delta) < 0.01) continue;
+    var gridId = _xLabels[dx.idx] || ('X' + dx.idx);
+    var cmds = _kinEngine.dragGrid(gridId, dx.delta);
+    for (var ci = 0; ci < cmds.length; ci++) {
+      _applyCommand(cmds[ci]);
+      if (cmds[ci].action === 'TRANSLATE') translated++;
+      else if (cmds[ci].action === 'SCALE') scaled++;
+      else if (cmds[ci].action === 'ROOF_VERTICES' || cmds[ci].action === 'ROOF_LIFT') roofOps++;
+    }
+    console.log('§RECOMPOSE_GRID id=' + gridId +
+      ' delta=' + (dx.delta > 0 ? '+' : '') + dx.delta.toFixed(3) +
+      ' commands=' + cmds.length);
+  }
+
+  for (var zi = 0; zi < deltas.z.length; zi++) {
+    var dz = deltas.z[zi];
+    if (Math.abs(dz.delta) < 0.01) continue;
+    var zGridId = _zLabels[dz.idx] || ('Z' + dz.idx);
+    var zCmds = _kinEngine.dragGrid(zGridId, dz.delta);
+    for (var zci = 0; zci < zCmds.length; zci++) {
+      _applyCommand(zCmds[zci]);
+      if (zCmds[zci].action === 'TRANSLATE') translated++;
+      else if (zCmds[zci].action === 'SCALE') scaled++;
+      else if (zCmds[zci].action === 'ROOF_VERTICES' || zCmds[zci].action === 'ROOF_LIFT') roofOps++;
+    }
+    console.log('§RECOMPOSE_GRID id=' + zGridId +
+      ' delta=' + (dz.delta > 0 ? '+' : '') + dz.delta.toFixed(3) +
+      ' commands=' + zCmds.length);
+  }
+
+  console.log('§RECOMPOSE_DONE translated=' + translated + ' scaled=' + scaled +
+    ' roofOps=' + roofOps);
 }
 
 /**
- * _recomposeOOTB(A, deltas) — re-expand verbs with updated grid positions.
- * For FRAME verbs: replace grid coordinates with current positions.
- * For CLUSTER verbs: shift entries near moved grid lines by delta.
- * For TILE verbs: recalculate count from new bay width.
+ * _translateMesh — shift a mesh by delta on the given axis (x, y, or z).
  */
-function _recomposeOOTB(A, deltas) {
-  var bomDb = A._bomDb || A.db;
-  var moved = 0;
+function _translateMesh(guid, axis, delta) {
+  var matIdx = axis === 'x' ? 12 : (axis === 'z' ? 14 : 13); // 12=X, 13=Y, 14=Z
 
-  // Collect all leaves with verb_ref
-  var leaves = BOMWalker.collectLeaves(bomDb, _findRootBom(bomDb));
-  if (!leaves.length) return;
-
-  for (var i = 0; i < leaves.length; i++) {
-    var leaf = leaves[i];
-    var line = leaf.line;
-    if (!line.verbRef) continue;
-
-    var positions = VerbExpand.expandVerb(line.verbRef, line.qty, line.dx, line.dy, line.dz);
-    if (!positions.length) continue;
-
-    // Apply grid deltas to expanded positions
-    for (var pi = 0; pi < positions.length; pi++) {
-      var p = positions[pi];
-      // Convert BOM coords (IFC) to Three.js for delta matching
-      var threePos = _ifcToThree(p[0], p[1], p[2], A._docEnv ? { x: A._docEnv.ox || 0, y: A._docEnv.oy || 0, z: A._docEnv.oz || 0 } : null);
-
-      // Find nearest X grid line and apply its delta
-      var bestXDelta = _findNearestDelta(threePos.x, deltas.x);
-      // Find nearest Z grid line and apply its delta
-      var bestZDelta = _findNearestDelta(threePos.z, deltas.z);
-
-      if (Math.abs(bestXDelta) > 0.01 || Math.abs(bestZDelta) > 0.01) {
-        positions[pi]._threeX = threePos.x + bestXDelta;
-        positions[pi]._threeZ = threePos.z + bestZDelta;
-        positions[pi]._threeY = threePos.y;
-        positions[pi]._moved = true;
-        moved++;
+  var slot = _guidToSlot[guid];
+  if (slot) {
+    var mat = new THREE.Matrix4();
+    slot.mesh.getMatrixAt(slot.slotId, mat);
+    mat.elements[matIdx] += delta;
+    slot.mesh.setMatrixAt(slot.slotId, mat);
+    slot.mesh.instanceMatrix.needsUpdate = true;
+    return;
+  }
+  var inst = _guidToInstance[guid];
+  if (inst) {
+    var imat = new THREE.Matrix4();
+    inst.mesh.getMatrixAt(inst.index, imat);
+    imat.elements[matIdx] += delta;
+    inst.mesh.setMatrixAt(inst.index, imat);
+    inst.mesh.instanceMatrix.needsUpdate = true;
+    return;
+  }
+  // Single-mesh path
+  if (_appRef && _appRef.scene) {
+    _appRef.scene.traverse(function(obj) {
+      if (obj.userData && obj.userData.guid === guid && obj.isMesh) {
+        if (axis === 'x') obj.position.x += delta;
+        else if (axis === 'y') obj.position.y += delta;
+        else obj.position.z += delta;
       }
-    }
+    });
   }
-
-  // TODO: Apply positions to scene meshes when guid→mesh mapping is available
-  console.log('§RECOMPOSE_OOTB leaves=' + leaves.length + ' moved=' + moved);
-}
-
-/**
- * _recomposeIFCDrop(A, deltas) — apply nearest grid delta to element positions.
- */
-function _recomposeIFCDrop(A, deltas) {
-  if (!A.db) return;
-  var moved = 0;
-
-  // Get currently shown phases
-  var shownGuids = [];
-  var filtered = _phases.filter(function(p) { return !_activeDisc || p.disc === _activeDisc; });
-  for (var fi = 0; fi <= _phaseIndex && fi < filtered.length; fi++) {
-    shownGuids = shownGuids.concat(filtered[fi].guids);
-  }
-  if (!shownGuids.length) return;
-
-  for (var gi = 0; gi < shownGuids.length; gi++) {
-    var guid = shownGuids[gi];
-
-    // BatchedMesh path
-    var slot = _guidToSlot[guid];
-    if (slot) {
-      var mat = new THREE.Matrix4();
-      slot.mesh.getMatrixAt(slot.slotId, mat);
-      var pos = new THREE.Vector3();
-      pos.setFromMatrixPosition(mat);
-
-      var dxApply = _findNearestDelta(pos.x, deltas.x);
-      var dzApply = _findNearestDelta(pos.z, deltas.z);
-
-      if (Math.abs(dxApply) > 0.01 || Math.abs(dzApply) > 0.01) {
-        mat.elements[12] += dxApply;
-        mat.elements[14] += dzApply;
-        slot.mesh.setMatrixAt(slot.slotId, mat);
-        slot.mesh.instanceMatrix.needsUpdate = true;
-        moved++;
-      }
-      continue;
-    }
-
-    // InstancedMesh path
-    var inst = _guidToInstance[guid];
-    if (inst) {
-      var imat = new THREE.Matrix4();
-      inst.mesh.getMatrixAt(inst.index, imat);
-      var ipos = new THREE.Vector3();
-      ipos.setFromMatrixPosition(imat);
-
-      var idxApply = _findNearestDelta(ipos.x, deltas.x);
-      var idzApply = _findNearestDelta(ipos.z, deltas.z);
-
-      if (Math.abs(idxApply) > 0.01 || Math.abs(idzApply) > 0.01) {
-        imat.elements[12] += idxApply;
-        imat.elements[14] += idzApply;
-        inst.mesh.setMatrixAt(inst.index, imat);
-        inst.mesh.instanceMatrix.needsUpdate = true;
-        moved++;
-      }
-      continue;
-    }
-
-    // Single-mesh path
-    var scene = A.scene;
-    if (scene) {
-      scene.traverse(function(obj) {
-        if (obj.userData && obj.userData.guid === guid && obj.isMesh) {
-          var sdx = _findNearestDelta(obj.position.x, deltas.x);
-          var sdz = _findNearestDelta(obj.position.z, deltas.z);
-          if (Math.abs(sdx) > 0.01 || Math.abs(sdz) > 0.01) {
-            obj.position.x += sdx;
-            obj.position.z += sdz;
-            moved++;
-          }
-        }
-      });
-    }
-  }
-
-  console.log('§RECOMPOSE_IFC_DROP guids=' + shownGuids.length + ' moved=' + moved);
-}
-
-/**
- * _findNearestDelta(pos, deltaArray) — find the nearest grid line delta for a position.
- * @param {number} pos — element position in Three.js coords
- * @param {Array} deltaArray — [{pos, orig, delta}]
- * @returns {number} delta to apply (0 if no nearby grid line moved)
- */
-function _findNearestDelta(pos, deltaArray) {
-  if (!deltaArray.length) return 0;
-  var best = 0;
-  var bestDist = Infinity;
-  for (var i = 0; i < deltaArray.length; i++) {
-    var d = deltaArray[i];
-    if (Math.abs(d.delta) < 0.01) continue; // no movement on this line
-    var dist = Math.abs(pos - d.orig);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = d.delta;
-    }
-  }
-  // Only apply if element is reasonably close to a grid line (within 2m)
-  return bestDist < 2.0 ? best : 0;
 }
 
 /**
@@ -1780,11 +1960,12 @@ function _findNearestDelta(pos, deltaArray) {
  */
 function _findRootBom(bomDb) {
   if (!bomDb) return null;
-  var boms = BOMWalker.listBoms(bomDb);
+  try {
+    var boms = BOMWalker.listBoms(bomDb);
+  } catch(e) { return null; } // DB may not have m_bom table
   for (var i = 0; i < boms.length; i++) {
     if (boms[i].bomType === 'BUILDING') return boms[i].bomId;
   }
-  // Fallback: first BOM
   return boms.length ? boms[0].bomId : null;
 }
 
@@ -1801,7 +1982,7 @@ window.DocCanvas = {
   handleRosettaDrag: handleRosettaDrag,
   setActiveDisc: setActiveDisc,
   // Test-only: inject phases without BOM.db (materialize tests)
-  _setPhases: function(p) { _phases = p; },
+  _setPhases: function(p) { _phases = p; _kinEngineDirty = true; },
   isActive: function() { return _active; },
   isCalibrating: function() { return _calibrationMode; },
   getCalibrations: function() { return _calibrations.slice(); },
@@ -1814,7 +1995,13 @@ window.DocCanvas = {
       xLabels: _xLabels.slice(),
       zLabels: _zLabels.slice()
     };
-  }
+  },
+  // §S270 test-only: expose engine internals for verification
+  _getKinEngine: function() { return _kinEngine; },
+  _rebuildEngine: _rebuildEngine,
+  _getShownGuids: _getShownGuids,
+  _setGridPositions: function(x, z) { _xPositions = x; _zPositions = z; },
+  _setGridOriginals: function(x, z) { _gridOriginals = { x: x, z: z }; _kinEngineDirty = true; }
 };
 
 })(window);
